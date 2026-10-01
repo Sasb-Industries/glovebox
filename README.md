@@ -11,8 +11,14 @@ Glovebox is a desktop app for macOS and Windows that turns your Google account i
 
 > 🚧 Early development. Nothing to install yet.
 
-## Setup
-Glovebox uses your own Google Cloud credentials. See [docs/google-cloud-setup.md](docs/google-cloud-setup.md).
+## Run it
+1. Install [Node.js](https://nodejs.org) 22 or newer.
+2. Set up Google credentials in a `.env` file. See [docs/google-cloud-setup.md](docs/google-cloud-setup.md).
+3. Run:
+   ```
+   npm install
+   npm run dev
+   ```
 
 ## Docs
 - [CONTEXT.md](CONTEXT.md) — what Glovebox is, its vocabulary, and the design decisions.

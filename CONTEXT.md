@@ -26,6 +26,7 @@ Guiding principle: **the codebase should be as simple as possible for the functi
 
 ### Platform & stack
 - Electron + TypeScript + React. One engine (Chromium) on both OSes so Google's editors behave exactly as in Chrome. See [ADR 0001](docs/adr/0001-electron.md).
+- Documents render in `<webview>` tags. See [ADR 0005](docs/adr/0005-webview-tag.md).
 - Online only. No local file copies or sync (Google's "Drive for desktop" already does that).
 
 ### Accounts & auth
