@@ -1,8 +1,8 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu, session, shell, type WebContents } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, session, shell, type WebContents } from 'electron'
 import { join } from 'node:path'
 import * as auth from './auth'
 import * as drive from './drive'
-import { applyTheme, getBindings, getPrefs, setPrefs } from './prefs'
+import { applyTheme, getBindings, getPrefs, setPrefs, updateTitleBars } from './prefs'
 import * as windows from './windows'
 import { findShortcut } from '../shared/shortcuts'
 import { DRIVE_METHODS, type AppStatus, type MenuItem, type Prefs, type TabState } from '../shared/types'
@@ -214,6 +214,7 @@ function buildMenu() {
 
 app.whenReady().then(() => {
   applyTheme()
+  nativeTheme.on('updated', updateTitleBars) // "Match system" follows the OS live.
   buildMenu()
   windows.openProfileWindows(windows.restoreAtLaunch())
   app.on('activate', () => BrowserWindow.getAllWindows().length === 0 && windows.openProfileWindows(false))

@@ -82,6 +82,21 @@ export type Theme = 'system' | 'light' | 'dim' | 'dark' | 'pastel' | 'latte' | '
 /** Themes drawn on a dark background (native menus and scrollbars follow suit). */
 export const DARK_THEMES: Theme[] = ['dark', 'frappe', 'macchiato', 'mocha']
 
+/** Title bar colours per theme (the sidebar colour and text colour), for the Windows caption buttons. */
+export const THEME_TITLEBAR: Record<Exclude<Theme, 'system'>, { color: string; symbolColor: string }> = {
+  light: { color: '#f3f3f5', symbolColor: '#1d1d1f' },
+  dim: { color: '#d7dae0', symbolColor: '#1f2228' },
+  dark: { color: '#141416', symbolColor: '#ececf0' },
+  pastel: { color: '#ede0fb', symbolColor: '#3b3450' },
+  latte: { color: '#e6e9ef', symbolColor: '#4c4f69' },
+  frappe: { color: '#292c3c', symbolColor: '#c6d0f5' },
+  macchiato: { color: '#1e2030', symbolColor: '#cad3f5' },
+  mocha: { color: '#181825', symbolColor: '#cdd6f4' }
+}
+
+/** Height of Glovebox's own title bar (the native one is hidden). */
+export const TITLEBAR_HEIGHT = 32
+
 /** Window background per theme, so new windows don't flash the wrong colour. */
 export const THEME_BACKGROUNDS: Record<Exclude<Theme, 'system'>, string> = {
   light: '#ffffff',

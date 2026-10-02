@@ -133,6 +133,33 @@ body,
   margin: 0;
   height: 100%;
 }
+#root {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Our own title bar: themed, draggable, with the window title. */
+.titlebar {
+  height: 32px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 140px; /* clear of the traffic lights / caption buttons */
+  background: var(--rail-bg);
+  border-bottom: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  -webkit-app-region: drag;
+}
+.window-body {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
 body {
   font: 13px/1.4 system-ui, -apple-system, 'Segoe UI', sans-serif;
   color: var(--text);

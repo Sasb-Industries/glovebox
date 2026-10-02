@@ -6,7 +6,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import * as auth from './auth'
 import * as drive from './drive'
-import { getPrefs, windowBackground } from './prefs'
+import { getPrefs, titleBarOverlay, windowBackground } from './prefs'
 import type { TabState, WindowInit } from '../shared/types'
 
 interface SavedWindow {
@@ -50,6 +50,11 @@ export function createWindow(init: WindowInit = { kind: 'main', tabs: [], active
     title: 'Glovebox',
     backgroundColor: windowBackground(),
     autoHideMenuBar: true, // Windows: the menu bar appears with Alt.
+    // Glovebox draws its own themed title bar; macOS keeps its traffic lights, Windows its caption buttons.
+    titleBarStyle: 'hidden',
+    ...(process.platform === 'darwin'
+      ? { trafficLightPosition: { x: 12, y: 9 } }
+      : { titleBarOverlay: titleBarOverlay() }),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: true,
