@@ -588,3 +588,9 @@ code {
     padding: 0 6px;
   }
 }
+
+.toolbar > .close-side {
+  margin-left: 4px;
+  font-size: 18px;
+  color: var(--muted);
+}

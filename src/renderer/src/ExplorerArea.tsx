@@ -15,8 +15,6 @@ type Side = 'left' | 'right'
 const DOCK_TYPE = 'application/x-glovebox-dock-tab'
 /** How long a dragged file must hover a dock tab before that tab opens. */
 const HOVER_OPEN_MS = 500
-/** Dropping a dock tab within this fraction of either edge opens split view on that side. */
-const EDGE_ZONE = 0.3
 
 export interface ExplorerAreaHandle {
   goToSection: (section: Section) => void
@@ -119,6 +117,12 @@ export function ExplorerArea({ ref, onSectionChange, refreshKey, ...explorerProp
     setFocused('left')
   }
 
+  /** Closes one side of split view; its tab stays in the dock. */
+  function closeSide(side: Side) {
+    setPanes({ left: side === 'left' ? panes.right! : panes.left, right: null })
+    setFocused('left')
+  }
+
   async function onDockMenu(e: React.MouseEvent, id: string) {
     e.preventDefault()
     const choice = await window.glovebox.popupMenu([
@@ -161,22 +165,18 @@ export function ExplorerArea({ ref, onSectionChange, refreshKey, ...explorerProp
     }
   })
 
-  function edgeOf(e: React.DragEvent): Side | null {
+  function sideAt(e: React.DragEvent): Side {
     const rect = e.currentTarget.getBoundingClientRect()
-    const x = (e.clientX - rect.left) / rect.width
-    return x < EDGE_ZONE ? 'left' : x > 1 - EDGE_ZONE ? 'right' : null
+    return e.clientX - rect.left < rect.width / 2 ? 'left' : 'right'
   }
 
-  // Dragging a dock tab to the left/right edge previews and opens split view, like Windows snap.
+  // Dragging a dock tab over either half previews and opens split view on that side, like Windows snap.
   const areaDropProps: React.HTMLAttributes<HTMLElement> = {
     onDragOver: (e) => {
       if (!isDockDrag(e)) return
-      const edge = edgeOf(e)
-      setSplitPreview(edge)
-      if (edge) {
-        e.preventDefault()
-        e.dataTransfer.dropEffect = 'move'
-      }
+      e.preventDefault()
+      e.dataTransfer.dropEffect = 'move'
+      setSplitPreview(sideAt(e))
     },
     onDragLeave: (e) => {
       if (!e.currentTarget.contains(e.relatedTarget as Node)) setSplitPreview(null)
@@ -184,11 +184,9 @@ export function ExplorerArea({ ref, onSectionChange, refreshKey, ...explorerProp
     onDrop: (e) => {
       setSplitPreview(null)
       const id = e.dataTransfer.getData(DOCK_TYPE)
-      const edge = edgeOf(e)
-      if (id && edge) {
-        e.preventDefault()
-        openSplit(id, edge)
-      }
+      if (!id) return
+      e.preventDefault()
+      openSplit(id, sideAt(e))
     }
   }
 
@@ -222,6 +220,7 @@ export function ExplorerArea({ ref, onSectionChange, refreshKey, ...explorerProp
                 setClipboard={setClipboard}
                 onChanged={onChanged}
                 refreshKey={refreshKey + changes}
+                onCloseSide={split && side ? () => closeSide(side) : undefined}
                 {...explorerProps}
               />
             </div>

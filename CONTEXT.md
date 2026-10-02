@@ -47,7 +47,8 @@ Guiding principle: **the codebase should be as simple as possible for the functi
 - Each dock tab shows a folder icon plus a short truncated name, so tabs can be told apart. Close with × on hover or middle-click. With one tab left, the dock goes back to just **+**.
 - Each folder tab is its own explorer with its own back/forward history. The clipboard (cut/copy) is shared across tabs.
 - Dragging a file and hovering over a folder tab for ~0.5s opens that tab so you can drop into it. In split view it opens in the *other* pane, so the source stays visible. Dropping straight onto a dock tab moves the files into that tab's folder.
-- Split view, started either by **dragging a folder tab to the left/right edge** or by **right-click → "Open in split view (left/right)"**. Right-click also offers "Close split view". The edge zones are the outer 30% of the explorer area.
+- Split view, started either by **dragging a folder tab over the left/right half** or by **right-click → "Open in split view (left/right)"**. Right-click also offers "Close split view". The drop side is simply whichever half the cursor is over; there is no dead zone.
+- In split view each side has an × at the end of its toolbar that closes that side; the other side takes over and the tab stays in the dock.
   - While dragging: a translucent copy of the icon follows the cursor, and the target half of the window is grayed out to preview where it lands (Windows-snap style).
 - v1 split is folders-only, but built so doc + folder / doc + doc can be added later without a rewrite.
 

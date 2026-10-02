@@ -38,6 +38,8 @@ interface Props {
   setClipboard: (clipboard: Clipboard) => void
   /** Called after any change to Drive, so every explorer refreshes. */
   onChanged: () => void
+  /** In split view: closes this side, leaving its tab in the dock. */
+  onCloseSide?: () => void
   refreshKey: number
   onOpen: (file: DriveFile, forceNew: boolean) => void
   /** Files that were trashed or deleted, so their tabs can close. */
@@ -46,7 +48,7 @@ interface Props {
 }
 
 export function Explorer(props: Props) {
-  const { ref, initial, onLocationChange, clipboard, setClipboard, onChanged, refreshKey, onOpen, onRemoved, onAuthError } = props
+  const { ref, initial, onLocationChange, clipboard, setClipboard, onChanged, onCloseSide, refreshKey, onOpen, onRemoved, onAuthError } = props
   const [location, setLocation] = useState<Location>(initial)
   const [back, setBack] = useState<Location[]>([])
   const [forward, setForward] = useState<Location[]>([])
@@ -417,6 +419,7 @@ export function Explorer(props: Props) {
     },
     onDragLeave: () => setDropTarget((t) => (t === targetId ? null : t)),
     onDrop: (e) => {
+      if (!accepts(e)) return // e.g. a dock tab being dropped for split view
       e.preventDefault()
       e.stopPropagation()
       setDropTarget(null)
@@ -505,6 +508,11 @@ export function Explorer(props: Props) {
               }}
             />
           </label>
+          {onCloseSide && (
+            <button className="close-side" onClick={onCloseSide} title="Close this side (the tab stays in the dock)">
+              ×
+            </button>
+          )}
         </header>
 
         {location.kind === 'search' && (
