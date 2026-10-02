@@ -150,7 +150,14 @@ code {
   width: 46px;
 }
 .rail-collapsed .rail-label,
-.rail-collapsed .rail-close {
+.rail-collapsed .rail-chevron {
+  color: var(--muted);
+  font-size: 10px;
+}
+.rail-collapsed .rail-chevron {
+  display: none;
+}
+.rail-close {
   display: none;
 }
 .rail-tabs {
@@ -202,12 +209,26 @@ code {
   white-space: nowrap;
   text-overflow: ellipsis;
 }
+.rail-chevron {
+  color: var(--muted);
+  font-size: 10px;
+}
+.rail-collapsed .rail-chevron {
+  display: none;
+}
 .rail-close {
   visibility: hidden;
   padding: 0 4px;
   color: var(--muted);
 }
-.rail-item:hover .rail-close {
+.rail-item:hover .rail-chevron {
+  color: var(--muted);
+  font-size: 10px;
+}
+.rail-collapsed .rail-chevron {
+  display: none;
+}
+.rail-close {
   visibility: visible;
 }
 .rail-divider {
@@ -254,29 +275,6 @@ code {
   flex: 1;
   display: flex;
   min-width: 0;
-}
-.nav-pane {
-  width: 180px;
-  flex-shrink: 0;
-  padding: 8px 6px;
-  background: var(--pane-bg);
-  border-right: 1px solid var(--border);
-}
-.nav-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  text-align: left;
-}
-.nav-item .icon {
-  color: var(--muted);
-}
-.nav-item.active .icon {
-  color: var(--accent);
-}
-.nav-item.active {
-  background: var(--selected);
 }
 .explorer-main {
   flex: 1;

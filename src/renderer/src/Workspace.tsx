@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { DriveFile, Profile } from '../../shared/types'
-import { Explorer } from './Explorer'
+import { Explorer, type ExplorerHandle } from './Explorer'
+import { SECTION_LABELS, type Section } from './location'
 import { cleanTitle, describeUrl, iconUrl, openUrlFor } from './files'
 
 interface Tab {
@@ -26,6 +27,8 @@ export function Workspace({ profile, partition, refreshKey, onAuthError, onSignO
   const [tabs, setTabs] = useState<Tab[]>([])
   const [active, setActive] = useState<string>(FILES)
   const [flashing, setFlashing] = useState<string | null>(null)
+  const [section, setSection] = useState<Section>('my-drive')
+  const explorer = useRef<ExplorerHandle>(null)
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem('railCollapsed') === '1')
 
   useEffect(() => localStorage.setItem('railCollapsed', collapsed ? '1' : '0'), [collapsed])
@@ -70,6 +73,17 @@ export function Workspace({ profile, partition, refreshKey, onAuthError, onSignO
     if (active === key) setActive(rest[Math.min(index, rest.length - 1)]?.key ?? FILES)
   }
 
+  /** From a document, Files goes back to the explorer; in the explorer, it picks the section. */
+  async function onFilesClick(e: React.MouseEvent) {
+    if (active !== FILES) return setActive(FILES)
+    const rect = e.currentTarget.getBoundingClientRect()
+    const choice = await window.glovebox.popupMenu(
+      (Object.keys(SECTION_LABELS) as Section[]).map((s) => ({ id: s, label: SECTION_LABELS[s], checked: s === section })),
+      { x: Math.round(rect.left), y: Math.round(rect.bottom + 2) }
+    )
+    if (choice) explorer.current?.goToSection(choice as Section)
+  }
+
   const setTitle = useCallback(
     (key: string, title: string) => setTabs((ts) => ts.map((t) => (t.key === key ? { ...t, title } : t))),
     []
@@ -80,11 +94,12 @@ export function Workspace({ profile, partition, refreshKey, onAuthError, onSignO
       <nav className="rail">
         <button
           className={`rail-item ${active === FILES ? 'active' : ''}`}
-          onClick={() => setActive(FILES)}
-          title="Files"
+          onClick={onFilesClick}
+          title={`${SECTION_LABELS[section]} — click to switch`}
         >
           <img src={iconUrl('application/vnd.google-apps.folder')} alt="" />
-          <span className="rail-label">Files</span>
+          <span className="rail-label">{SECTION_LABELS[section]}</span>
+          <span className="rail-chevron">▾</span>
         </button>
         <div className="rail-divider" />
         <div className="rail-tabs">
@@ -125,7 +140,7 @@ export function Workspace({ profile, partition, refreshKey, onAuthError, onSignO
 
       <main className="content">
         <div className="view" hidden={active !== FILES}>
-          <Explorer refreshKey={refreshKey} onOpen={openFile} onAuthError={onAuthError} />
+          <Explorer ref={explorer} onSectionChange={setSection} refreshKey={refreshKey} onOpen={openFile} onAuthError={onAuthError} />
         </div>
         {tabs.map((tab) => (
           <DocView

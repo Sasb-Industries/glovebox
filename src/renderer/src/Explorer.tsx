@@ -1,23 +1,14 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { FOLDER_MIME, type DriveFile, type DriveView, type MenuItem, type UploadProgress } from '../../shared/types'
+import { useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react'
+import { FOLDER_MIME, type DriveFile, type MenuItem, type UploadProgress } from '../../shared/types'
 import { DRAG_TYPE, FileList, type DropProps, type Sort } from './FileList'
 import { isFolder, isShortcut, NEW_GOOGLE_FILES, ownerName } from './files'
-import { Icon, type IconName } from './icons'
-import { folderOf, MY_DRIVE, VIEW_LABELS, type Location } from './location'
+import { Icon } from './icons'
+import { folderOf, MY_DRIVE, SECTION_LABELS, sectionOf, sectionRoot, type Location, type Section } from './location'
 
 const drive = window.glovebox.drive
 const isMac = navigator.userAgent.includes('Mac')
 const TRASH_ACCELERATOR = isMac ? 'Cmd+Backspace' : 'Delete'
 const SEPARATOR: MenuItem = { type: 'separator' }
-
-const NAV: { label: string; icon: IconName; location: Location }[] = [
-  { label: 'My Drive', icon: 'myDrive', location: MY_DRIVE },
-  ...(Object.entries(VIEW_LABELS) as [DriveView, string][]).map(([view, label]) => ({
-    label,
-    icon: ({ 'shared-drives': 'sharedDrives', 'shared-with-me': 'sharedWithMe' } as Record<string, IconName>)[view] ?? (view as IconName),
-    location: { kind: 'view' as const, view }
-  }))
-]
 
 const sortValue: Record<Sort['key'], (f: DriveFile) => string | number> = {
   name: (f) => f.name.toLowerCase(),
@@ -30,13 +21,19 @@ const plural = (n: number, word = 'item') => `${n} ${word}${n === 1 ? '' : 's'}`
 const errorText = (e: unknown) =>
   String((e as Error)?.message ?? e).replace(/^Error invoking remote method '[^']+': (Error: )?/, '')
 
+export interface ExplorerHandle {
+  goToSection: (section: Section) => void
+}
+
 interface Props {
+  ref: React.Ref<ExplorerHandle>
+  onSectionChange: (section: Section) => void
   refreshKey: number
   onOpen: (file: DriveFile, forceNew: boolean) => void
   onAuthError: (e: unknown) => boolean
 }
 
-export function Explorer({ refreshKey, onOpen, onAuthError }: Props) {
+export function Explorer({ ref, onSectionChange, refreshKey, onOpen, onAuthError }: Props) {
   const [location, setLocation] = useState<Location>(MY_DRIVE)
   const [back, setBack] = useState<Location[]>([])
   const [forward, setForward] = useState<Location[]>([])
@@ -56,6 +53,9 @@ export function Explorer({ refreshKey, onOpen, onAuthError }: Props) {
   const loadedLocation = useRef<Location | null>(null)
 
   const folder = folderOf(location)
+  const section = sectionOf(location)
+  useEffect(() => onSectionChange(section), [section, onSectionChange])
+  useImperativeHandle(ref, () => ({ goToSection: (s) => navigate(sectionRoot(s)) }))
   const reload = () => setReloads((r) => r + 1)
 
   useEffect(() => {
@@ -126,7 +126,7 @@ export function Explorer({ refreshKey, onOpen, onAuthError }: Props) {
     setForward((f) => f.slice(1))
   }
   const canGoUp = location.kind === 'folder' && location.path.length > 1
-  const goUp = () => canGoUp && navigate({ kind: 'folder', path: location.path.slice(0, -1) })
+  const goUp = () => canGoUp && navigate({ ...location, path: location.path.slice(0, -1) })
 
   async function openFile(file: DriveFile, forceNew = false) {
     let target = file
@@ -136,11 +136,14 @@ export function Explorer({ refreshKey, onOpen, onAuthError }: Props) {
     }
     if (!isFolder(target)) return onOpen(target, forceNew)
     if (location.kind === 'folder' && target === file)
-      return navigate({ kind: 'folder', path: [...location.path, { id: target.id, name: target.name }] })
+      return navigate({ ...location, path: [...location.path, { id: target.id, name: target.name }] })
     if (location.kind === 'view' && location.view === 'shared-drives')
-      return navigate({ kind: 'folder', path: [{ id: target.id, name: target.name }] })
+      return navigate({ kind: 'folder', path: [{ id: target.id, name: target.name }], section })
     // Shortcuts, search results, Starred etc.: jump to the folder's real location.
-    await attempt(async () => navigate({ kind: 'folder', path: await drive.resolvePath(target.id) }))
+    await attempt(async () => {
+      const path = await drive.resolvePath(target.id)
+      navigate({ kind: 'folder', path, section: path[0].id === 'root' ? 'my-drive' : section })
+    })
   }
 
   // ---- Changing things ----
@@ -424,27 +427,8 @@ export function Explorer({ refreshKey, onOpen, onAuthError }: Props) {
     <p className="list-message muted">{emptyText}</p>
   ) : null
 
-  const isActive = (loc: Location) =>
-    loc.kind === 'view'
-      ? location.kind === 'view' && location.view === loc.view
-      : location.kind === 'folder' && location.path[0].id === 'root'
-
   return (
     <div className="explorer" ref={listRef}>
-      <aside className="nav-pane">
-        {NAV.map((item) => (
-          <button
-            key={item.label}
-            className={`nav-item ${isActive(item.location) ? 'active' : ''}`}
-            onClick={() => navigate(item.location)}
-            {...(item.location === MY_DRIVE ? dropProps('root') : {})}
-          >
-            <Icon name={item.icon} />
-            {item.label}
-          </button>
-        ))}
-      </aside>
-
       <section className="explorer-main">
         <header className="toolbar">
           <button onClick={goBack} disabled={!back.length} title="Back (Alt+←)">
@@ -469,7 +453,7 @@ export function Explorer({ refreshKey, onOpen, onAuthError }: Props) {
                   {i > 0 && <span className="crumb-sep">›</span>}
                   <button
                     className="crumb"
-                    onClick={() => i < location.path.length - 1 && navigate({ kind: 'folder', path: location.path.slice(0, i + 1) })}
+                    onClick={() => i < location.path.length - 1 && navigate({ ...location, path: location.path.slice(0, i + 1) })}
                     {...dropProps(crumb.id)}
                   >
                     {crumb.name}
@@ -478,7 +462,7 @@ export function Explorer({ refreshKey, onOpen, onAuthError }: Props) {
               ))
             ) : (
               <span className="crumb">
-                {location.kind === 'view' ? VIEW_LABELS[location.view] : `Search results for “${location.query}”`}
+                {location.kind === 'view' ? SECTION_LABELS[location.view] : `Search results for “${location.query}”`}
               </span>
             )}
           </div>

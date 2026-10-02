@@ -124,6 +124,7 @@ ipcMain.handle('menu:popup', (e, items: MenuItem[], position?: { x: number; y: n
           ? { type: 'separator' }
           : {
               label: item.label,
+              ...(item.checked !== undefined && { type: 'checkbox' as const, checked: item.checked }),
               enabled: item.enabled ?? true,
               accelerator: item.accelerator,
               registerAccelerator: false,

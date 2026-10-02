@@ -12,10 +12,10 @@ Guiding principle: **the codebase should be as simple as possible for the functi
 |---|---|
 | **Profile** | One Google account signed into Glovebox. Has its own isolated web session, its own Drive API token, and its own tabs. Switching profile switches the whole app. |
 | **Rail** | The collapsible vertical tab list on the left of every window. **Files** at the top, then doc tabs, then ⚙ Settings at the bottom. Collapses to icons only. |
-| **Files** | The rail entry that shows the explorer view. |
+| **Files** | The top rail entry. Its label is the current **section**. From a doc, clicking it returns to the explorer view. In the explorer view, clicking it opens a menu of sections with a check mark on the current one. |
+| **Section** | A top-level area of Drive: My Drive (the usual one), Shared drives, Shared with me, Recent, Starred, Trash. Chosen from the Files menu; there is no separate nav pane. |
 | **Doc tab** | A rail tab holding an open file (Google editor or preview). Compact: icon + truncated title. Reorderable. |
-| **Explorer view** | Shown when Files is selected: nav pane, path bar, search, details list, and the dock. |
-| **Nav pane** | Left column of the explorer: My Drive, Shared drives, Shared with me, Recent, Starred, Trash. |
+| **Explorer view** | Shown when Files is selected: path bar, search, details list, status bar, and the dock. |
 | **Dock** | Floating pill at bottom-center of the explorer view holding **folder tabs** and a **+**. No colored border; follows the theme. |
 | **Folder tab** | One explorer location in the dock. Clicking **+** turns the current location into a folder tab and opens a new one. |
 | **Split view** | Two folder tabs side by side in the explorer view, for drag-and-drop moves between them. |
@@ -36,7 +36,7 @@ Guiding principle: **the codebase should be as simple as possible for the functi
 - Work/school accounts may be blocked by their admin's third-party-app policy. Personal accounts are fine.
 
 ### Explorer
-- Explorer-style layout: nav pane, breadcrumb path bar, back/forward/up, details view (Name / Modified / Owner / Size, sortable). Details view only in v1; icon/thumbnail view later.
+- Explorer-style layout: sections picked from the rail's Files menu (no nav pane, since switching is rare), breadcrumb path bar, back/forward/up, details view (Name / Modified / Owner / Size, sortable). Details view only in v1; icon/thumbnail view later.
 - Drive shortcuts behave like Windows shortcuts — opening one jumps to the real location.
 - Search box: scoped to the current folder by default, one click to widen to all of Drive. Uses Drive full-text search.
 - File operations in v1: right-click (Rename, Delete to Trash, Make a copy, Copy link, Star), drag to move, drag in from the OS to upload, cut/copy/paste. Sharing uses Google's own share dialog.
@@ -72,7 +72,7 @@ Guiding principle: **the codebase should be as simple as possible for the functi
 
 ## Build order
 1. **Walking skeleton** — app shell, one profile + sign-in, browse My Drive, double-click opens a Doc in a rail tab.
-2. **Explorer for real** — full nav pane, search, create menu, file operations, drag/drop, uploads, cut/copy/paste.
+2. **Explorer for real** — all sections, search, create menu, file operations, drag/drop, uploads, cut/copy/paste.
 3. **Dock & split** — folder tabs, drag-hover-to-switch, split view.
 4. **Preferences & profiles** — multiple profiles, multiple windows, restore-tabs, own-window, theme, shortcut editor.
 5. **Shipping** — GitHub Actions builds, Releases, in-app updater, README with Google Cloud setup.

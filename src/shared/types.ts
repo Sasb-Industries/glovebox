@@ -44,6 +44,8 @@ export interface MenuItem {
   enabled?: boolean
   /** Shown as a hint only; menus don't register shortcuts. */
   accelerator?: string
+  /** Shows a check mark when true. */
+  checked?: boolean
   type?: 'separator'
 }
 
