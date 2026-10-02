@@ -456,19 +456,19 @@ export function Explorer(props: Props) {
       <section className="explorer-main">
         <header className="toolbar">
           <button onClick={goBack} disabled={!back.length} title="Back (Alt+←)">
-            ←
+            <Icon name="back" size={18} />
           </button>
           <button onClick={goForward} disabled={!forward.length} title="Forward (Alt+→)">
-            →
+            <Icon name="forward" size={18} />
           </button>
           <button onClick={goUp} disabled={!canGoUp} title="Up (Backspace)">
-            ↑
+            <Icon name="up" size={18} />
           </button>
           <button onClick={reload} title="Refresh">
-            ⟳
+            <Icon name="refresh" size={18} />
           </button>
-          <button className="new-button" onClick={onNewClick} title="New">
-            <Icon name="add" /> New
+          <button className="new-button" onClick={onNewClick} title="New file, folder or upload">
+            <Icon name="add" size={18} />
           </button>
           <div className="breadcrumb">
             {location.kind === 'folder' ? (

@@ -377,14 +377,12 @@ code {
 .icon {
   flex-shrink: 0;
 }
+.toolbar > button {
+  display: grid;
+  place-items: center;
+}
 .toolbar > .new-button {
-  width: auto;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
   margin-left: 6px;
-  padding: 0 10px 0 6px;
   border: 1px solid var(--border);
 }
 .search {
@@ -583,9 +581,6 @@ code {
   }
   .col-owner {
     display: none;
-  }
-  .toolbar > .new-button {
-    padding: 0 6px;
   }
 }
 
