@@ -1,6 +1,7 @@
+import { FileIcon } from './icons'
 import { useEffect, useRef } from 'react'
 import type { DriveFile } from '../../shared/types'
-import { displayMime, formatModified, formatSize, iconUrl, isFolder, isShortcut, ownerName } from './files'
+import { displayMime, formatModified, formatSize, isFolder, isShortcut, ownerName } from './files'
 
 export type SortKey = 'name' | 'modified' | 'owner' | 'size'
 export interface Sort {
@@ -108,7 +109,7 @@ export function FileList(props: Props) {
           {...(isFolder(file) ? props.dropProps(file.id) : {})}
         >
           <span className="col col-name">
-            <img src={iconUrl(displayMime(file))} alt="" draggable={false} />
+            <FileIcon mimeType={displayMime(file)} />
             {renamingId === file.id ? (
               <RenameInput name={file.name} onDone={(name) => props.onRename(file, name)} />
             ) : (

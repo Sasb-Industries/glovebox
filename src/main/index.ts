@@ -21,6 +21,9 @@ const isGoogleSignIn = (url: string) => URL.parse(url)?.hostname === 'accounts.g
 const onSignInPage = new Set<number>() // webContents ids
 
 app.on('session-created', (ses) => {
+  // Only document sessions sign in to Google. The app's own UI session never waits on this hook,
+  // so it keeps loading even while the main process is busy (e.g. a Keychain prompt is open).
+  if (!ses.storagePath?.includes('profile-')) return
   ses.webRequest.onBeforeSendHeaders((details, callback) => {
     if (!isGoogleSignIn(details.url) && !onSignInPage.has(details.webContentsId ?? -1))
       return callback({ requestHeaders: details.requestHeaders })

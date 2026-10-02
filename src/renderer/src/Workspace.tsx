@@ -1,9 +1,10 @@
+import { FileIcon } from './icons'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { DriveFile, MenuItem, Profile, TabState, WindowInit } from '../../shared/types'
 import { findShortcut, keyPressFrom, type ShortcutId } from '../../shared/shortcuts'
 import { ExplorerArea, type ExplorerAreaHandle } from './ExplorerArea'
 import { SECTION_LABELS, type Section } from './location'
-import { cleanTitle, describeUrl, iconUrl, openUrlFor } from './files'
+import { cleanTitle, describeUrl, openUrlFor } from './files'
 import { isMac, useBindings, usePrefs } from './prefs'
 import { Settings } from './Settings'
 import { updateWaiting, useUpdateState } from './updates'
@@ -247,7 +248,7 @@ export function Workspace({ init, profile, partition, refreshKey, onAuthError }:
           onClick={onFilesClick}
           title={`${SECTION_LABELS[section]} — click to switch`}
         >
-          <img src={iconUrl('application/vnd.google-apps.folder')} alt="" />
+          <FileIcon mimeType="application/vnd.google-apps.folder" />
           <span className="rail-label">{SECTION_LABELS[section]}</span>
           <span className="rail-chevron">▾</span>
         </button>
@@ -265,7 +266,7 @@ export function Workspace({ init, profile, partition, refreshKey, onAuthError }:
               onDragEnd={(e) => onTabDragEnd(e, tab)}
               {...tabDropProps(tab.key)}
             >
-              <img src={iconUrl(tab.mimeType)} alt="" draggable={false} />
+              <FileIcon mimeType={tab.mimeType} />
               <span className="rail-label">{tab.title}</span>
               <button
                 className="rail-close"

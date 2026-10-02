@@ -1,8 +1,8 @@
+import { FileIcon } from './icons'
 import { useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import type { DriveFile } from '../../shared/types'
 import { Explorer, type Clipboard, type ExplorerHandle } from './Explorer'
 import { DRAG_TYPE } from './FileList'
-import { iconUrl } from './files'
 import { isMac, useBindings } from './prefs'
 import { findShortcut, keyPressFrom } from '../../shared/shortcuts'
 import { MY_DRIVE, SECTION_LABELS, sectionOf, type Location, type Section } from './location'
@@ -261,7 +261,7 @@ export function ExplorerArea({ ref, onSectionChange, refreshKey, ...explorerProp
                 onDragEnd={() => setSplitPreview(null)}
                 {...dockTabDropProps(tab.id)}
               >
-                <img src={iconUrl('application/vnd.google-apps.folder')} alt="" draggable={false} />
+                <FileIcon mimeType="application/vnd.google-apps.folder" />
                 <span className="dock-label">{label}</span>
                 <button
                   className="dock-close"
