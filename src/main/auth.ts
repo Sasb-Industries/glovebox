@@ -112,7 +112,13 @@ export async function getAccessToken(): Promise<string> {
   const cached = accessTokens.get(stored.id)
   if (cached && cached.expiresAt - 60_000 > Date.now()) return cached.value
   const raw = Buffer.from(stored.refreshToken, 'base64')
-  const refreshToken = stored.encrypted ? safeStorage.decryptString(raw) : raw.toString()
+  let refreshToken: string
+  try {
+    refreshToken = stored.encrypted ? safeStorage.decryptString(raw) : raw.toString()
+  } catch {
+    // The OS keychain entry isn't readable (e.g. a token saved by a dev build, read by the installed app).
+    throw new Error(RECONNECT)
+  }
   const tokens = await postToken({ grant_type: 'refresh_token', refresh_token: refreshToken })
   accessTokens.set(stored.id, { value: tokens.access_token, expiresAt: Date.now() + tokens.expires_in * 1000 })
   return tokens.access_token

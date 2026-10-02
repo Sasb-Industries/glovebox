@@ -6,6 +6,7 @@ import { SECTION_LABELS, type Section } from './location'
 import { cleanTitle, describeUrl, iconUrl, openUrlFor } from './files'
 import { isMac, useBindings, usePrefs } from './prefs'
 import { Settings } from './Settings'
+import { updateWaiting, useUpdateState } from './updates'
 
 interface Tab extends TabState {
   key: string
@@ -33,6 +34,7 @@ interface Props {
 /** The rail (Files + doc tabs) and whichever view is active: the explorer, settings, or one doc. */
 export function Workspace({ init, profile, partition, refreshKey, onAuthError }: Props) {
   const prefs = usePrefs()
+  const update = useUpdateState()
   const bindings = useBindings()
   // Tabs this window starts with (restored, or a window reloaded).
   const [tabs, setTabs] = useState<Tab[]>(() =>
@@ -285,7 +287,9 @@ export function Workspace({ init, profile, partition, refreshKey, onAuthError }:
             <span className="rail-label">Collapse</span>
           </button>
           <button className={`rail-item ${active === SETTINGS ? 'active' : ''}`} onClick={() => activate(SETTINGS)} title="Settings">
-            <span className="rail-glyph">⚙</span>
+            <span className="rail-glyph">
+              ⚙{updateWaiting(update) && <span className="update-dot" title="Update available" />}
+            </span>
             <span className="rail-label">Settings</span>
           </button>
           <button className="rail-item" onClick={onProfileClick} title={`${profile.email} — switch account`}>

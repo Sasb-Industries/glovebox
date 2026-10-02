@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import * as auth from './auth'
 import * as drive from './drive'
 import { applyTheme, getBindings, getPrefs, setPrefs, updateTitleBars } from './prefs'
+import * as updates from './updates'
 import * as windows from './windows'
 import { findShortcut } from '../shared/shortcuts'
 import { DRIVE_METHODS, type AppStatus, type MenuItem, type Prefs, type TabState } from '../shared/types'
@@ -115,6 +116,11 @@ ipcMain.handle('profiles:remove', async (_e, id: string) => {
   if (wasActive) windows.reopenForActiveProfile()
 })
 
+ipcMain.handle('updates:state', () => updates.getState())
+ipcMain.handle('updates:check', () => updates.check())
+ipcMain.handle('updates:install', () => updates.install())
+ipcMain.handle('updates:restart', () => updates.restartToUpdate())
+
 ipcMain.handle('prefs:get', () => getPrefs())
 ipcMain.handle('prefs:set', (_e, changes: Partial<Prefs>) => setPrefs(changes))
 
@@ -217,6 +223,7 @@ app.whenReady().then(() => {
   nativeTheme.on('updated', updateTitleBars) // "Match system" follows the OS live.
   buildMenu()
   windows.openProfileWindows(windows.restoreAtLaunch())
+  updates.startChecking()
   app.on('activate', () => BrowserWindow.getAllWindows().length === 0 && windows.openProfileWindows(false))
 })
 app.on('before-quit', windows.prepareToQuit)

@@ -1,0 +1,32 @@
+# Installers for macOS (.dmg) and Windows (.exe). CI builds these on every v* tag and publishes
+# them to a GitHub Release (see .github/workflows/release.yml). Unsigned: see README for first launch.
+appId: app.glovebox.desktop
+productName: Glovebox
+copyright: Copyright © 2026 Sasb-Industries
+directories:
+  output: release
+  buildResources: build
+files:
+  - out/**
+  - package.json
+mac:
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+  category: public.app-category.productivity
+  # Ad-hoc signature: required for Apple Silicon to run the app at all. Not a paid Developer ID.
+  identity: '-'
+  hardenedRuntime: false
+dmg:
+  artifactName: ${productName}-${version}-${arch}.${ext}
+win:
+  target: nsis
+  artifactName: ${productName}-Setup-${version}.${ext}
+nsis:
+  oneClick: true
+  perMachine: false
+publish:
+  provider: github
+  owner: Sasb-Industries
+  repo: glovebox
+  releaseType: release

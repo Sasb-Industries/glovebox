@@ -833,3 +833,18 @@ kbd {
   height: 100%;
   position: relative;
 }
+
+/* Update available */
+.rail-glyph {
+  position: relative;
+}
+.update-dot {
+  position: absolute;
+  top: -2px;
+  right: -3px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 2px var(--rail-bg);
+}

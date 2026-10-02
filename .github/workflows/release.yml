@@ -1,0 +1,42 @@
+# Push a tag like v0.2.0 (npm version minor && git push --follow-tags) to build and publish a release.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            args: --mac
+          - os: windows-latest
+            args: --win
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build (Google OAuth credentials baked in from repo secrets)
+        shell: bash
+        run: |
+          if [ -z "$GLOVEBOX_GOOGLE_CLIENT_ID" ] || [ -z "$GLOVEBOX_GOOGLE_CLIENT_SECRET" ]; then
+            echo "::error::Set the GLOVEBOX_GOOGLE_CLIENT_ID and GLOVEBOX_GOOGLE_CLIENT_SECRET repository secrets."
+            exit 1
+          fi
+          npm run build
+        env:
+          GLOVEBOX_GOOGLE_CLIENT_ID: ${{ secrets.GLOVEBOX_GOOGLE_CLIENT_ID }}
+          GLOVEBOX_GOOGLE_CLIENT_SECRET: ${{ secrets.GLOVEBOX_GOOGLE_CLIENT_SECRET }}
+      - name: Package and publish
+        run: npx electron-builder ${{ matrix.args }} --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

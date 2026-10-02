@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { Prefs, Profile, Theme } from '../../shared/types'
 import { bindingFrom, defaultBindings, formatBinding, keyPressFrom, SHORTCUTS, type ShortcutId } from '../../shared/shortcuts'
 import { isMac, setPrefs, useBindings, usePrefs } from './prefs'
+import { useUpdateState } from './updates'
 
 const THEME_GROUPS: { label: string; themes: [Theme, string][] }[] = [
   {
@@ -93,6 +94,8 @@ export function Settings({ profile, onSignOut }: Props) {
       </section>
 
       <ShortcutEditor prefs={prefs} />
+
+      <SoftwareUpdates />
     </div>
   )
 }
@@ -168,6 +171,48 @@ function ShortcutEditor({ prefs }: { prefs: Prefs }) {
       >
         Reset to defaults
       </button>
+    </section>
+  )
+}
+
+function SoftwareUpdates() {
+  const update = useUpdateState()
+  if (!update) return null
+  const { status, current, latest, progress, error } = update
+  return (
+    <section>
+      <h2>Software updates</h2>
+      <div className="settings-row">
+        <span className="grow">
+          <span>Glovebox {current}</span>
+          <span className="hint">
+            {status === 'dev' && 'Running from source — updates come from git pull, not here.'}
+            {status === 'idle' && 'Checks for updates once a day.'}
+            {status === 'checking' && 'Checking…'}
+            {status === 'up-to-date' && "You're up to date."}
+            {status === 'available' && `Version ${latest} is available.`}
+            {status === 'downloading' && `Downloading ${latest}… ${progress ?? 0}%`}
+            {status === 'ready' &&
+              (isMac
+                ? `Version ${latest} is in your Downloads folder. Drag Glovebox into Applications, replacing the old one, then reopen it.`
+                : `Version ${latest} is ready.`)}
+            {status === 'error' && `Couldn't check for updates: ${error}`}
+          </span>
+        </span>
+        {status === 'available' && (
+          <button className="primary" onClick={() => window.glovebox.installUpdate()}>
+            {isMac ? 'Download' : 'Download and install'}
+          </button>
+        )}
+        {status === 'ready' && (
+          <button className="primary" onClick={() => window.glovebox.restartToUpdate()}>
+            {isMac ? 'Open installer' : 'Restart to update'}
+          </button>
+        )}
+        {['idle', 'up-to-date', 'error'].includes(status) && (
+          <button onClick={() => window.glovebox.checkForUpdates()}>Check for updates</button>
+        )}
+      </div>
     </section>
   )
 }

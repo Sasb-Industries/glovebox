@@ -7,6 +7,7 @@ import {
   type Profile,
   type ProfileList,
   type TabState,
+  type UpdateState,
   type UploadProgress,
   type WindowInit
 } from '../shared/types'
@@ -27,6 +28,12 @@ const api = {
   listProfiles: (): Promise<ProfileList> => ipcRenderer.invoke('profiles:list'),
   switchProfile: (id: string): Promise<void> => ipcRenderer.invoke('profiles:switch', id),
   removeProfile: (id: string): Promise<void> => ipcRenderer.invoke('profiles:remove', id),
+
+  getUpdateState: (): Promise<UpdateState> => ipcRenderer.invoke('updates:state'),
+  onUpdateState: (callback: (state: UpdateState) => void) => subscribe('update-state', callback),
+  checkForUpdates: (): Promise<void> => ipcRenderer.invoke('updates:check'),
+  installUpdate: (): Promise<void> => ipcRenderer.invoke('updates:install'),
+  restartToUpdate: (): Promise<void> => ipcRenderer.invoke('updates:restart'),
 
   getPrefs: (): Promise<Prefs> => ipcRenderer.invoke('prefs:get'),
   setPrefs: (changes: Partial<Prefs>): Promise<Prefs> => ipcRenderer.invoke('prefs:set', changes),

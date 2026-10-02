@@ -2,7 +2,7 @@
 // all and reopens that profile's windows. Each window reports its doc tabs here so they can be
 // restored (at launch when the preference is on, and always when switching back to a profile).
 import { app, BrowserWindow, nativeImage, screen } from 'electron'
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import * as auth from './auth'
 import * as drive from './drive'
@@ -147,4 +147,16 @@ export function prepareToQuit() {
   keepingSession = true
 }
 
-export const restoreAtLaunch = () => getPrefs().restoreTabs
+const restoreFlagPath = () => join(app.getPath('userData'), 'restore-next-launch')
+
+/** An update restart always brings tabs back, whatever the restore preference. */
+export function restoreOnNextLaunch() {
+  writeFileSync(restoreFlagPath(), '')
+  prepareToQuit()
+}
+
+export function restoreAtLaunch() {
+  const flagged = existsSync(restoreFlagPath())
+  if (flagged) rmSync(restoreFlagPath())
+  return flagged || getPrefs().restoreTabs
+}

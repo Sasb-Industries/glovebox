@@ -71,7 +71,9 @@ Settings opens from ⚙ in the rail footer as its own view (Accounts, General, A
 - **Software updates** — current version + "Check for updates".
 
 ### Distribution & updates
-- GitHub Actions builds macOS + Windows on every version tag (`v*`) and attaches them to a GitHub Release. Unsigned (no paid signing).
+- GitHub Actions builds macOS + Windows on every version tag (`v*`) and attaches them to a GitHub Release: `Glovebox-<v>-arm64.dmg`, `Glovebox-<v>-x64.dmg`, `Glovebox-Setup-<v>.exe`. No paid signing. macOS builds are ad-hoc signed, which Apple Silicon requires to run at all.
+- Release builds bake in the Google OAuth client from repo secrets, so testers just install and sign in.
+- App icon: `build/icon.svg` (a folder in a glove compartment), rendered to `build/icon.png`.
 - The app checks daily; a dot appears on ⚙ when an update is available.
   - Windows: one-click download → restart → updated.
   - macOS: downloads and opens the new build; user drags it to Applications (unsigned apps can't self-update on macOS).

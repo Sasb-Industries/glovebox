@@ -11,3 +11,9 @@ Desktop app (Electron + TypeScript + React, macOS + Windows) that gives Google D
 - **Always commit and push to GitHub when a feature or change is done — no need to ask.** The user tests from what's pushed; reverting is fine.
 - Keep the codebase as simple as possible for the functionality. Reuse Google's own UI (editors, previews, share dialog) instead of rebuilding it.
 - Never commit `.env` or any OAuth credentials.
+
+## Releasing
+- Bump the version and tag: `npm version patch|minor` then `git push --follow-tags`.
+- The `v*` tag triggers `.github/workflows/release.yml`, which builds the macOS .dmg and Windows .exe and publishes a GitHub Release. Installed apps pick it up through Settings → Software updates.
+- CI bakes in the Google OAuth credentials from the `GLOVEBOX_GOOGLE_CLIENT_ID` / `GLOVEBOX_GOOGLE_CLIENT_SECRET` repo secrets. It fails if they're missing.
+- Local build without publishing: `npm run build && npx electron-builder --mac --publish never`. Output goes to `release/`.

@@ -137,6 +137,18 @@ export interface WindowInit {
   activeIndex: number
 }
 
+export interface UpdateState {
+  status: 'dev' | 'idle' | 'checking' | 'up-to-date' | 'available' | 'downloading' | 'ready' | 'error'
+  current: string
+  latest?: string
+  releaseUrl?: string
+  /** 0–100 while downloading. */
+  progress?: number
+  /** macOS: the downloaded .dmg. */
+  downloadedFile?: string
+  error?: string
+}
+
 export interface ProfileList {
   profiles: Profile[]
   activeId: string | null
