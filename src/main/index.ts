@@ -4,10 +4,24 @@ import * as auth from './auth'
 import * as drive from './drive'
 import type { AppStatus } from '../shared/types'
 
-// Google refuses web sign-in from browsers that identify as Electron, so present as plain Chrome.
-const platformUA =
-  process.platform === 'darwin' ? 'Macintosh; Intel Mac OS X 10_15_7' : 'Windows NT 10.0; Win64; x64'
-app.userAgentFallback = `Mozilla/5.0 (${platformUA}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${process.versions.chrome} Safari/537.36`
+// Present as plain Chrome so Google's editors treat us as a supported browser.
+const isMac = process.platform === 'darwin'
+const CHROME_UA = `Mozilla/5.0 (${isMac ? 'Macintosh; Intel Mac OS X 10_15_7' : 'Windows NT 10.0; Win64; x64'}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${process.versions.chrome} Safari/537.36`
+app.userAgentFallback = CHROME_UA
+
+// Google's sign-in pages detect embedded Chromium ("This browser or app may not be secure") but
+// accept Firefox, so on accounts.google.com only we present as Firefox, without Chromium's client hints.
+const FIREFOX_UA = `Mozilla/5.0 (${isMac ? 'Macintosh; Intel Mac OS X 10.15' : 'Windows NT 10.0; Win64; x64'}; rv:140.0) Gecko/20100101 Firefox/140.0`
+const isGoogleSignIn = (url: string) => URL.parse(url)?.hostname === 'accounts.google.com'
+
+app.on('session-created', (ses) => {
+  ses.webRequest.onBeforeSendHeaders({ urls: ['https://accounts.google.com/*'] }, (details, callback) => {
+    const headers = details.requestHeaders
+    for (const name of Object.keys(headers)) if (name.toLowerCase().startsWith('sec-ch-ua')) delete headers[name]
+    headers['User-Agent'] = FIREFOX_UA
+    callback({ requestHeaders: headers })
+  })
+})
 
 const partitionFor = (profileId: string) => `persist:profile-${profileId}`
 const GOOGLE_EDITOR_HOSTS = new Set(['docs.google.com', 'drive.google.com'])
@@ -52,6 +66,11 @@ app.on('web-contents-created', (_event, contents) => {
     if (!params.partition?.startsWith('persist:profile-')) event.preventDefault()
   })
   if (contents.getType() === 'webview') {
+    // Keep the page's own navigator.userAgent consistent with the headers above.
+    contents.on('did-start-navigation', (event) => {
+      if (event.isMainFrame && !event.isSameDocument)
+        contents.setUserAgent(isGoogleSignIn(event.url) ? FIREFOX_UA : CHROME_UA)
+    })
     contents.setWindowOpenHandler(({ url }) => {
       if (contents.hostWebContents) routeLink(url, contents.hostWebContents)
       return { action: 'deny' }
