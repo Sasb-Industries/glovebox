@@ -58,15 +58,15 @@ Guiding principle: **the codebase should be as simple as possible for the functi
 - Opening a file that's already open focuses its existing tab and briefly flashes it. Ctrl/Cmd+click or middle-click forces a second tab.
 - Links inside a document: Google Docs/Drive links open as new doc tabs; all other links open in the system browser. Glovebox is not a general-purpose browser.
 - Non-Google files open as preview tabs. Office files (.docx/.xlsx/.pptx) open in Google's editors in Office-editing mode, matching Drive.
-- Doc tabs can be reordered by dragging within the rail. Dragging one out of the window opens it in a new window; dropping it on another window's rail moves it there. If that leaves a window with no doc tabs (and other windows remain), the window closes. Moving a tab reloads its document (Google keeps the state). Always on, no setting.
+- Doc tabs can be reordered by dragging within the rail. Dragging one out of the window opens it in a **document window**: just that document, no rail or explorer, titled like Word ("Essay - Google Docs"; on Windows it also gets the Docs/Sheets/Slides taskbar icon). Links to other Google files inside a document window open more document windows. Dropping a tab on another files window's rail moves it there. If that leaves a window with no doc tabs (and other windows remain), the window closes. Window → New Files Window (Cmd/Ctrl+Shift+N) opens another full window. Moving a tab reloads its document (Google keeps the state). Always on, no setting.
 - Closing the last window quits Glovebox, on macOS too, so reopening is a fresh start unless restore is on.
 - Restored tabs load lazily (only when clicked) — each live Google editor costs 150–300 MB.
 
 ### Preferences
 Settings opens from ⚙ in the rail footer as its own view (Accounts, General, Appearance, Keyboard shortcuts). Preferences are global (not per profile) and apply live in every window.
 - **Restore tabs on launch** — default **off** (fresh start). A restart triggered by an app update always restores.
-- **Open files in their own window** — default **off**.
-- **Theme** — Light / Dark / System (default System). Custom minimal neutral style, clean like Google's but our own.
+- **Open files in their own window** — default **off**. Opens document windows (see Tabs & windows).
+- **Theme** — Match system (default) / Light / Dim / Dark / Pastel. Dim is a softer slate between Light and Dark; Pastel is an Easter palette (cream, lavender, mint, pink, butter-yellow hover). Custom minimal neutral style, clean like Google's but our own.
 - **Keyboard shortcuts** — defaults mimic Chrome + Google Drive (`src/shared/shortcuts.ts`). Editable table: click Change, press the new keys; a key already in use moves to the new action; "Reset to defaults". *App* shortcuts (next/previous/close tab, go to Files) work even while a document has focus. Everything else applies only in the file list, so Google's editors keep their own shortcuts. There is no Cmd+W "Close Window" menu item; Cmd/Ctrl+W closes tabs.
 - **Software updates** — current version + "Check for updates".
 

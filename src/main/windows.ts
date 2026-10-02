@@ -1,15 +1,16 @@
 // Windows and sessions. Every window belongs to the active profile; switching profile closes them
 // all and reopens that profile's windows. Each window reports its doc tabs here so they can be
 // restored (at launch when the preference is on, and always when switching back to a profile).
-import { app, BrowserWindow, nativeTheme, screen } from 'electron'
+import { app, BrowserWindow, nativeImage, screen } from 'electron'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import * as auth from './auth'
 import * as drive from './drive'
-import { getPrefs } from './prefs'
+import { getPrefs, windowBackground } from './prefs'
 import type { TabState, WindowInit } from '../shared/types'
 
 interface SavedWindow {
+  kind: 'main' | 'doc'
   bounds: Electron.Rectangle
   tabs: TabState[]
   activeIndex: number
@@ -37,7 +38,7 @@ const saveSoon = () => {
   saveTimer = setTimeout(saveSession, 500)
 }
 
-export function createWindow(init: WindowInit = { tabs: [], activeIndex: -1 }, bounds?: Partial<Electron.Rectangle>) {
+export function createWindow(init: WindowInit = { kind: 'main', tabs: [], activeIndex: -1 }, bounds?: Partial<Electron.Rectangle>) {
   const win = new BrowserWindow({
     width: bounds?.width ?? 1280,
     height: bounds?.height ?? 820,
@@ -47,7 +48,8 @@ export function createWindow(init: WindowInit = { tabs: [], activeIndex: -1 }, b
     minHeight: 480,
     show: false,
     title: 'Glovebox',
-    backgroundColor: nativeTheme.shouldUseDarkColors ? '#1c1c1e' : '#ffffff',
+    backgroundColor: windowBackground(),
+    autoHideMenuBar: true, // Windows: the menu bar appears with Alt.
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: true,
@@ -55,7 +57,8 @@ export function createWindow(init: WindowInit = { tabs: [], activeIndex: -1 }, b
     }
   })
   pendingInit.set(win.webContents.id, init)
-  live.set(win.id, { bounds: win.getBounds(), tabs: init.tabs, activeIndex: init.activeIndex })
+  live.set(win.id, { kind: init.kind, bounds: win.getBounds(), tabs: init.tabs, activeIndex: init.activeIndex })
+  if (init.kind === 'doc' && init.tabs[0]) setDocIcon(win, init.tabs[0].mimeType)
   const trackBounds = () => {
     live.set(win.id, { ...live.get(win.id)!, bounds: win.getBounds() })
     saveSoon()
@@ -76,17 +79,29 @@ export function createWindow(init: WindowInit = { tabs: [], activeIndex: -1 }, b
 
 /** Called by each window's renderer on load. */
 export const takeInit = (webContentsId: number): WindowInit =>
-  pendingInit.get(webContentsId) ?? { tabs: [], activeIndex: -1 }
+  pendingInit.get(webContentsId) ?? { kind: 'main', tabs: [], activeIndex: -1 }
 
 export function updateWindow(win: BrowserWindow, tabs: TabState[], activeIndex: number) {
   live.set(win.id, { ...live.get(win.id)!, tabs, activeIndex })
   // A window reloaded (e.g. Cmd+R) should come back with its tabs.
-  pendingInit.set(win.webContents.id, { tabs, activeIndex })
+  pendingInit.set(win.webContents.id, { kind: live.get(win.id)!.kind, tabs, activeIndex })
   saveSoon()
 }
 
-/** Opens a new window holding these tabs, centred on a screen point if given. */
-export function openTabsInNewWindow(tabs: TabState[], at?: { x: number; y: number }) {
+/** Windows taskbar: show the document type's icon (Docs, Sheets…) instead of Glovebox's. */
+async function setDocIcon(win: BrowserWindow, mimeType: string) {
+  if (process.platform === 'darwin') return // macOS windows have no per-window icon.
+  try {
+    const res = await fetch(`https://drive-thirdparty.googleusercontent.com/64/type/${mimeType}`)
+    const icon = nativeImage.createFromBuffer(Buffer.from(await res.arrayBuffer()))
+    if (!win.isDestroyed() && !icon.isEmpty()) win.setIcon(icon)
+  } catch {
+    // Keep the app icon.
+  }
+}
+
+/** Opens a document in its own window (just the document), centred on a screen point if given. */
+export function openDocWindow(tab: TabState, at?: { x: number; y: number }) {
   const width = 1100
   const height = 760
   const bounds = at ? { x: Math.round(at.x - width / 2), y: Math.round(at.y - 20), width, height } : { width, height }
@@ -95,7 +110,7 @@ export function openTabsInNewWindow(tabs: TabState[], at?: { x: number; y: numbe
     bounds.x = Math.max(area.x, Math.min(bounds.x!, area.x + area.width - width))
     bounds.y = Math.max(area.y, Math.min(bounds.y!, area.y + area.height - height))
   }
-  createWindow({ tabs, activeIndex: tabs.length - 1 }, bounds)
+  createWindow({ kind: 'doc', tabs: [tab], activeIndex: 0 }, bounds)
 }
 
 /** Opens the active profile's saved windows, or one empty window. */
@@ -103,7 +118,9 @@ export function openProfileWindows(restore: boolean) {
   const profile = auth.getProfile()
   const saved = profile && restore ? (readSessions()[profile.id] ?? []) : []
   if (!saved.length) return void createWindow()
-  for (const w of saved) createWindow({ tabs: w.tabs, activeIndex: w.activeIndex }, w.bounds)
+  // Make sure there's a files window, even if only document windows were open.
+  if (!saved.some((w) => w.kind !== 'doc')) createWindow()
+  for (const w of saved) createWindow({ kind: w.kind ?? 'main', tabs: w.tabs, activeIndex: w.activeIndex }, w.bounds)
 }
 
 /** Closes every window (keeping its session) and reopens as the now-active profile.

@@ -13,6 +13,10 @@ export function PrefsProvider({ children }: { children: React.ReactNode }) {
     window.glovebox.getPrefs().then(setPrefs)
     return window.glovebox.onPrefsChanged(setPrefs)
   }, [])
+  // Dim and Pastel are CSS themes on top of light/dark (see styles.css).
+  useEffect(() => {
+    if (prefs) document.documentElement.dataset.theme = prefs.theme
+  }, [prefs?.theme])
   return prefs && <PrefsContext.Provider value={prefs}>{children}</PrefsContext.Provider>
 }
 

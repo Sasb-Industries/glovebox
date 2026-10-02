@@ -30,6 +30,38 @@
   }
 }
 
+/* Dim: between light and dark, a soft slate. */
+:root[data-theme='dim'] {
+  --bg: #2a2d33;
+  --rail-bg: #23262b;
+  --pane-bg: #272a30;
+  --text: #dfe2e7;
+  --muted: #9aa1ab;
+  --border: #3a3e46;
+  --hover: rgba(255, 255, 255, 0.06);
+  --selected: #34445e;
+  --accent: #7aa2f7;
+  --danger: #ff7b8a;
+  --flash: rgba(122, 162, 247, 0.4);
+  color-scheme: dark;
+}
+
+/* Pastel: Easter colours — cream, lavender, mint and pink. */
+:root[data-theme='pastel'] {
+  --bg: #fffdf7;
+  --rail-bg: #ede0fb;
+  --pane-bg: #f4ecfd;
+  --text: #3b3450;
+  --muted: #85799c;
+  --border: #e2d3f3;
+  --hover: rgba(252, 211, 110, 0.22);
+  --selected: #caf0dc;
+  --accent: #d65f97;
+  --danger: #d64560;
+  --flash: rgba(214, 95, 151, 0.35);
+  color-scheme: light;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -693,4 +725,10 @@ kbd {
   border-color: var(--accent);
   color: var(--accent);
   outline: none;
+}
+
+/* A window holding a single document */
+.doc-window {
+  height: 100%;
+  position: relative;
 }

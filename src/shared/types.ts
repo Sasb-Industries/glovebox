@@ -77,7 +77,15 @@ export const DRIVE_METHODS = [
   'copy'
 ] as const
 
-export type Theme = 'system' | 'light' | 'dark'
+export type Theme = 'system' | 'light' | 'dim' | 'dark' | 'pastel'
+
+/** Window background per theme, so new windows don't flash the wrong colour. */
+export const THEME_BACKGROUNDS: Record<Exclude<Theme, 'system'>, string> = {
+  light: '#ffffff',
+  dim: '#2a2d33',
+  dark: '#1c1c1e',
+  pastel: '#fffdf8'
+}
 
 export interface Prefs {
   /** Reopen the previous windows and tabs at launch. Off by default: a fresh start. */
@@ -100,6 +108,8 @@ export interface TabState {
 }
 
 export interface WindowInit {
+  /** 'main': the rail, explorer and tabs. 'doc': a single document filling the window, nothing else. */
+  kind: 'main' | 'doc'
   tabs: TabState[]
   /** Index of the tab to show, or -1 for Files. */
   activeIndex: number

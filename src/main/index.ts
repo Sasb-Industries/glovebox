@@ -123,9 +123,7 @@ ipcMain.on('window:update', (e, tabs: TabState[], activeIndex: number) => {
   const win = BrowserWindow.fromWebContents(e.sender)
   if (win) windows.updateWindow(win, tabs, activeIndex)
 })
-ipcMain.handle('window:open-tabs', (_e, tabs: TabState[], at?: { x: number; y: number }) =>
-  windows.openTabsInNewWindow(tabs, at)
-)
+ipcMain.handle('window:open-doc', (_e, tab: TabState, at?: { x: number; y: number }) => windows.openDocWindow(tab, at))
 /** Closes the sender's window unless it's the last one. */
 ipcMain.handle('window:close-if-others', (e) => {
   const win = BrowserWindow.fromWebContents(e.sender)
@@ -201,7 +199,15 @@ function buildMenu() {
         { role: 'togglefullscreen' }
       ]
     },
-    { label: 'Window', submenu: [{ role: 'minimize' }, { role: 'zoom' }] }
+    {
+      label: 'Window',
+      submenu: [
+        { label: 'New Files Window', accelerator: 'CmdOrCtrl+Shift+N', click: () => windows.createWindow() },
+        { type: 'separator' },
+        { role: 'minimize' },
+        { role: 'zoom' }
+      ]
+    }
   ]
   Menu.setApplicationMenu(Menu.buildFromTemplate(template))
 }

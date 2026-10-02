@@ -36,8 +36,8 @@ const api = {
 
   initWindow: (): Promise<WindowInit> => ipcRenderer.invoke('window:init'),
   updateWindow: (tabs: TabState[], activeIndex: number) => ipcRenderer.send('window:update', tabs, activeIndex),
-  openTabsInNewWindow: (tabs: TabState[], at?: { x: number; y: number }): Promise<void> =>
-    ipcRenderer.invoke('window:open-tabs', tabs, at),
+  /** Opens a document in its own window, with nothing but the document. */
+  openDocWindow: (tab: TabState, at?: { x: number; y: number }): Promise<void> => ipcRenderer.invoke('window:open-doc', tab, at),
   closeWindowIfOthers: (): Promise<void> => ipcRenderer.invoke('window:close-if-others'),
 
   drive: Object.fromEntries(

@@ -57,7 +57,7 @@ export function Settings({ profile, onSignOut }: Props) {
       <section>
         <h2>Appearance</h2>
         <div className="segmented">
-          {(['system', 'light', 'dark'] as Theme[]).map((theme) => (
+          {(['system', 'light', 'dim', 'dark', 'pastel'] as Theme[]).map((theme) => (
             <button key={theme} className={prefs.theme === theme ? 'on' : ''} onClick={() => setPrefs({ theme })}>
               {theme === 'system' ? 'Match system' : theme[0].toUpperCase() + theme.slice(1)}
             </button>

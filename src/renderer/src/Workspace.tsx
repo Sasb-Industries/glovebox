@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { DriveFile, MenuItem, Profile, TabState } from '../../shared/types'
+import type { DriveFile, MenuItem, Profile, TabState, WindowInit } from '../../shared/types'
 import { findShortcut, keyPressFrom, type ShortcutId } from '../../shared/shortcuts'
 import { ExplorerArea, type ExplorerAreaHandle } from './ExplorerArea'
 import { SECTION_LABELS, type Section } from './location'
@@ -23,6 +23,7 @@ const newKey = (tab: TabState) => `${tab.fileId ?? 'url'}:${crypto.randomUUID()}
 const toState = ({ fileId, title, mimeType, url }: Tab): TabState => ({ fileId, title, mimeType, url })
 
 interface Props {
+  init: WindowInit
   profile: Profile
   partition: string
   refreshKey: number
@@ -30,12 +31,14 @@ interface Props {
 }
 
 /** The rail (Files + doc tabs) and whichever view is active: the explorer, settings, or one doc. */
-export function Workspace({ profile, partition, refreshKey, onAuthError }: Props) {
+export function Workspace({ init, profile, partition, refreshKey, onAuthError }: Props) {
   const prefs = usePrefs()
   const bindings = useBindings()
-  const [tabs, setTabs] = useState<Tab[]>([])
-  const [active, setActiveKey] = useState<string>(FILES)
-  const [ready, setReady] = useState(false)
+  // Tabs this window starts with (restored, or a window reloaded).
+  const [tabs, setTabs] = useState<Tab[]>(() =>
+    init.tabs.map((t, i) => ({ ...t, key: newKey(t), loaded: i === init.activeIndex }))
+  )
+  const [active, setActiveKey] = useState<string>(() => tabs[init.activeIndex]?.key ?? FILES)
   const [flashing, setFlashing] = useState<string | null>(null)
   const [section, setSection] = useState<Section>('my-drive')
   const [dropBefore, setDropBefore] = useState<string | null>(null)
@@ -45,20 +48,10 @@ export function Workspace({ profile, partition, refreshKey, onAuthError }: Props
 
   useEffect(() => localStorage.setItem('railCollapsed', collapsed ? '1' : '0'), [collapsed])
 
-  // Tabs this window starts with: restored, dragged out of another window, or opened in their own window.
-  useEffect(() => {
-    window.glovebox.initWindow().then(({ tabs: initial, activeIndex }) => {
-      const restored = initial.map((t, i) => ({ ...t, key: newKey(t), loaded: i === activeIndex }))
-      setTabs(restored)
-      setActiveKey(restored[activeIndex]?.key ?? FILES)
-      setReady(true)
-    })
-  }, [])
-
   // Report tabs to the main process for sessions and restore.
   useEffect(() => {
-    if (ready) window.glovebox.updateWindow(tabs.map(toState), tabs.findIndex((t) => t.key === active))
-  }, [ready, tabs, active])
+    window.glovebox.updateWindow(tabs.map(toState), tabs.findIndex((t) => t.key === active))
+  }, [tabs, active])
 
   function activate(key: string) {
     setActiveKey(key)
@@ -76,7 +69,7 @@ export function Workspace({ profile, partition, refreshKey, onAuthError }: Props
         setFlashing(existing.key)
         return
       }
-      if (prefs.openInOwnWindow) return void window.glovebox.openTabsInNewWindow([tab])
+      if (prefs.openInOwnWindow) return void window.glovebox.openDocWindow(tab)
       const key = newKey(tab)
       setTabs((ts) => [...ts, { ...tab, key, loaded: true }])
       setActiveKey(key)
@@ -205,7 +198,7 @@ export function Workspace({ profile, partition, refreshKey, onAuthError }: Props
       e.screenY < window.screenY ||
       e.screenY > window.screenY + window.outerHeight
     if (outside) {
-      window.glovebox.openTabsInNewWindow([toState(tab)], { x: e.screenX, y: e.screenY })
+      window.glovebox.openDocWindow(toState(tab), { x: e.screenX, y: e.screenY })
       removeTab(tab.key)
     }
   }
@@ -341,7 +334,7 @@ async function signOut(profile: Profile) {
   if (ok) await window.glovebox.removeProfile(profile.id)
 }
 
-function DocView(props: { tab: Tab; partition: string; visible: boolean; onTitle: (title: string) => void }) {
+export function DocView(props: { tab: Tab; partition: string; visible: boolean; onTitle: (title: string) => void }) {
   const { tab, partition, visible, onTitle } = props
   const ref = useRef<HTMLWebViewElement>(null)
   const onTitleRef = useRef(onTitle)

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { RECONNECT, type AppStatus } from '../../shared/types'
+import { RECONNECT, type AppStatus, type WindowInit } from '../../shared/types'
+import { DocWindow } from './DocWindow'
 import { Workspace } from './Workspace'
 
 export function App() {
@@ -10,8 +11,11 @@ export function App() {
   const [refreshKey, setRefreshKey] = useState(0)
   const [webLoginSkipped, setWebLoginSkipped] = useState(false)
 
+  const [init, setInit] = useState<WindowInit | null>(null)
+
   const refreshStatus = useCallback(() => window.glovebox.status().then(setStatus), [])
   useEffect(() => void refreshStatus(), [refreshStatus])
+  useEffect(() => void window.glovebox.initWindow().then(setInit), [])
 
   async function signIn() {
     setBusy(true)
@@ -35,7 +39,7 @@ export function App() {
     return expired
   }, [])
 
-  if (!status) return null
+  if (!status || !init) return null
 
   if (status.kind === 'needs-credentials')
     return (
@@ -59,6 +63,9 @@ export function App() {
       </Card>
     )
 
+  if (init.kind === 'doc' && init.tabs[0])
+    return <DocWindow initial={init.tabs[0]} partition={partitionFor(status.profile.id)} />
+
   if (!status.webSignedIn && !webLoginSkipped)
     return (
       <WebLogin
@@ -81,6 +88,7 @@ export function App() {
         </div>
       )}
       <Workspace
+        init={init}
         profile={status.profile}
         partition={partitionFor(status.profile.id)}
         refreshKey={refreshKey}
