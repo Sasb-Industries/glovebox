@@ -3,7 +3,7 @@ import { FOLDER_MIME, type DriveFile, type MenuItem, type UploadProgress } from 
 import { DRAG_TYPE, FileList, type DropProps, type Sort } from './FileList'
 import { isFolder, isShortcut, NEW_GOOGLE_FILES, ownerName } from './files'
 import { Icon } from './icons'
-import { folderOf, MY_DRIVE, SECTION_LABELS, sectionOf, sectionRoot, type Location, type Section } from './location'
+import { folderOf, SECTION_LABELS, sectionOf, sectionRoot, type Location, type Section } from './location'
 
 const drive = window.glovebox.drive
 const isMac = navigator.userAgent.includes('Mac')
@@ -23,11 +23,21 @@ const errorText = (e: unknown) =>
 
 export interface ExplorerHandle {
   goToSection: (section: Section) => void
+  /** Handles files dropped on this explorer's dock tab: moves or uploads them into its folder. */
+  receiveDrop: (data: DataTransfer) => void
 }
+
+export type Clipboard = { mode: 'cut' | 'copy'; files: DriveFile[] } | null
 
 interface Props {
   ref: React.Ref<ExplorerHandle>
-  onSectionChange: (section: Section) => void
+  initial: Location
+  onLocationChange: (location: Location) => void
+  /** Shared between all explorers so you can cut in one and paste in another. */
+  clipboard: Clipboard
+  setClipboard: (clipboard: Clipboard) => void
+  /** Called after any change to Drive, so every explorer refreshes. */
+  onChanged: () => void
   refreshKey: number
   onOpen: (file: DriveFile, forceNew: boolean) => void
   /** Files that were trashed or deleted, so their tabs can close. */
@@ -35,8 +45,9 @@ interface Props {
   onAuthError: (e: unknown) => boolean
 }
 
-export function Explorer({ ref, onSectionChange, refreshKey, onOpen, onRemoved, onAuthError }: Props) {
-  const [location, setLocation] = useState<Location>(MY_DRIVE)
+export function Explorer(props: Props) {
+  const { ref, initial, onLocationChange, clipboard, setClipboard, onChanged, refreshKey, onOpen, onRemoved, onAuthError } = props
+  const [location, setLocation] = useState<Location>(initial)
   const [back, setBack] = useState<Location[]>([])
   const [forward, setForward] = useState<Location[]>([])
   const [files, setFiles] = useState<DriveFile[] | null>(null)
@@ -46,7 +57,6 @@ export function Explorer({ ref, onSectionChange, refreshKey, onOpen, onRemoved, 
   const [anchor, setAnchor] = useState<string | null>(null)
   const [sort, setSort] = useState<Sort | null>(null)
   const [renamingId, setRenamingId] = useState<string | null>(null)
-  const [clipboard, setClipboard] = useState<{ mode: 'cut' | 'copy'; files: DriveFile[] } | null>(null)
   const [notice, setNotice] = useState<{ text: string; error?: boolean } | null>(null)
   const [upload, setUpload] = useState<UploadProgress | null>(null)
   const [searchText, setSearchText] = useState('')
@@ -56,8 +66,11 @@ export function Explorer({ ref, onSectionChange, refreshKey, onOpen, onRemoved, 
 
   const folder = folderOf(location)
   const section = sectionOf(location)
-  useEffect(() => onSectionChange(section), [section, onSectionChange])
-  useImperativeHandle(ref, () => ({ goToSection: (s) => navigate(sectionRoot(s)) }))
+  useEffect(() => onLocationChange(location), [location, onLocationChange])
+  useImperativeHandle(ref, () => ({
+    goToSection: (s) => navigate(sectionRoot(s)),
+    receiveDrop: (data) => (folder ? dropInto(data, folder.id) : notify("Files can't be dropped here.", true))
+  }))
   const reload = () => setReloads((r) => r + 1)
 
   useEffect(() => {
@@ -162,7 +175,7 @@ export function Explorer({ ref, onSectionChange, refreshKey, onOpen, onRemoved, 
       if (!onAuthError(e)) notify(errorText(e), true)
       return false
     } finally {
-      if (refresh) reload()
+      if (refresh) onChanged()
     }
   }
   const change = (fn: () => Promise<unknown>, success?: string) => attempt(fn, success, true)
@@ -407,11 +420,15 @@ export function Explorer({ ref, onSectionChange, refreshKey, onOpen, onRemoved, 
       e.preventDefault()
       e.stopPropagation()
       setDropTarget(null)
-      const internal = e.dataTransfer.getData(DRAG_TYPE)
-      if (internal) return moveIds(JSON.parse(internal), targetId)
-      uploadPaths([...e.dataTransfer.files].map((f) => window.glovebox.pathForFile(f)).filter(Boolean), targetId)
+      dropInto(e.dataTransfer, targetId)
     }
   })
+
+  function dropInto(data: DataTransfer, targetId: string) {
+    const internal = data.getData(DRAG_TYPE)
+    if (internal) return moveIds(JSON.parse(internal), targetId)
+    uploadPaths([...data.files].map((f) => window.glovebox.pathForFile(f)).filter(Boolean), targetId)
+  }
 
   // ---- Rendering ----
 

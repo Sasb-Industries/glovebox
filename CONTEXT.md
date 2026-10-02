@@ -43,9 +43,11 @@ Guiding principle: **the codebase should be as simple as possible for the functi
 - **Create (+) menu:** creates in the current folder and opens the new file in a new doc tab, named Untitled. Includes every Google file type that is cheap to support (Doc, Sheet, Slides, Form, Drawing…), plus Folder, Upload file, Upload folder. The type list is data; a type that needs special-case code is dropped rather than paid for.
 
 ### Dock & split view
-- Dock starts as just **+**; clicking it adds folder tabs (📁 📁 +).
-- Dragging a file and hovering over a folder tab switches to that folder so you can drop it there.
-- Split view, started either by **dragging a folder tab to the left/right edge** or by **right-click → "Open in split view"**.
+- Dock starts as just **+**; clicking it adds folder tabs (📁 📁 +). New folder tabs open at My Drive. Ctrl/Cmd+T also adds one.
+- Each dock tab shows a folder icon plus a short truncated name, so tabs can be told apart. Close with × on hover or middle-click. With one tab left, the dock goes back to just **+**.
+- Each folder tab is its own explorer with its own back/forward history. The clipboard (cut/copy) is shared across tabs.
+- Dragging a file and hovering over a folder tab for ~0.5s opens that tab so you can drop into it. In split view it opens in the *other* pane, so the source stays visible. Dropping straight onto a dock tab moves the files into that tab's folder.
+- Split view, started either by **dragging a folder tab to the left/right edge** or by **right-click → "Open in split view (left/right)"**. Right-click also offers "Close split view". The edge zones are the outer 30% of the explorer area.
   - While dragging: a translucent copy of the icon follows the cursor, and the target half of the window is grayed out to preview where it lands (Windows-snap style).
 - v1 split is folders-only, but built so doc + folder / doc + doc can be added later without a rewrite.
 

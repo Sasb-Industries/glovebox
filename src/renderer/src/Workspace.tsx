@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { DriveFile, Profile } from '../../shared/types'
-import { Explorer, type ExplorerHandle } from './Explorer'
+import { ExplorerArea, type ExplorerAreaHandle } from './ExplorerArea'
 import { SECTION_LABELS, type Section } from './location'
 import { cleanTitle, describeUrl, iconUrl, openUrlFor } from './files'
 
@@ -28,7 +28,7 @@ export function Workspace({ profile, partition, refreshKey, onAuthError, onSignO
   const [active, setActive] = useState<string>(FILES)
   const [flashing, setFlashing] = useState<string | null>(null)
   const [section, setSection] = useState<Section>('my-drive')
-  const explorer = useRef<ExplorerHandle>(null)
+  const explorer = useRef<ExplorerAreaHandle>(null)
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem('railCollapsed') === '1')
 
   useEffect(() => localStorage.setItem('railCollapsed', collapsed ? '1' : '0'), [collapsed])
@@ -145,7 +145,7 @@ export function Workspace({ profile, partition, refreshKey, onAuthError, onSignO
 
       <main className="content">
         <div className="view" hidden={active !== FILES}>
-          <Explorer ref={explorer} onSectionChange={setSection} refreshKey={refreshKey} onOpen={openFile} onRemoved={closeTabsFor} onAuthError={onAuthError} />
+          <ExplorerArea ref={explorer} onSectionChange={setSection} refreshKey={refreshKey} onOpen={openFile} onRemoved={closeTabsFor} onAuthError={onAuthError} />
         </div>
         {tabs.map((tab) => (
           <DocView
