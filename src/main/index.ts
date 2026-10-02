@@ -10,12 +10,16 @@ const CHROME_UA = `Mozilla/5.0 (${isMac ? 'Macintosh; Intel Mac OS X 10_15_7' : 
 app.userAgentFallback = CHROME_UA
 
 // Google's sign-in pages detect embedded Chromium ("This browser or app may not be secure") but
-// accept Firefox, so on accounts.google.com only we present as Firefox, without Chromium's client hints.
+// accept Firefox. While a webview is on accounts.google.com, every request it makes presents as
+// Firefox without Chromium's client hints; preload/webview.ts hides the matching JS APIs.
 const FIREFOX_UA = `Mozilla/5.0 (${isMac ? 'Macintosh; Intel Mac OS X 10.15' : 'Windows NT 10.0; Win64; x64'}; rv:140.0) Gecko/20100101 Firefox/140.0`
 const isGoogleSignIn = (url: string) => URL.parse(url)?.hostname === 'accounts.google.com'
+const onSignInPage = new Set<number>() // webContents ids
 
 app.on('session-created', (ses) => {
-  ses.webRequest.onBeforeSendHeaders({ urls: ['https://accounts.google.com/*'] }, (details, callback) => {
+  ses.webRequest.onBeforeSendHeaders((details, callback) => {
+    if (!isGoogleSignIn(details.url) && !onSignInPage.has(details.webContentsId ?? -1))
+      return callback({ requestHeaders: details.requestHeaders })
     const headers = details.requestHeaders
     for (const name of Object.keys(headers)) if (name.toLowerCase().startsWith('sec-ch-ua')) delete headers[name]
     headers['User-Agent'] = FIREFOX_UA
@@ -58,9 +62,9 @@ function routeLink(rawUrl: string, host: WebContents) {
 }
 
 app.on('web-contents-created', (_event, contents) => {
-  // Only allow webviews that load into a profile's session, with no Node access.
+  // Only allow webviews that load into a profile's session, with our preload and no Node access.
   contents.on('will-attach-webview', (event, webPreferences, params) => {
-    delete webPreferences.preload
+    webPreferences.preload = join(__dirname, '../preload/webview.js')
     webPreferences.nodeIntegration = false
     webPreferences.contextIsolation = true
     if (!params.partition?.startsWith('persist:profile-')) event.preventDefault()
@@ -68,9 +72,13 @@ app.on('web-contents-created', (_event, contents) => {
   if (contents.getType() === 'webview') {
     // Keep the page's own navigator.userAgent consistent with the headers above.
     contents.on('did-start-navigation', (event) => {
-      if (event.isMainFrame && !event.isSameDocument)
-        contents.setUserAgent(isGoogleSignIn(event.url) ? FIREFOX_UA : CHROME_UA)
+      if (!event.isMainFrame || event.isSameDocument) return
+      const signIn = isGoogleSignIn(event.url)
+      if (signIn) onSignInPage.add(contents.id)
+      else onSignInPage.delete(contents.id)
+      contents.setUserAgent(signIn ? FIREFOX_UA : CHROME_UA)
     })
+    contents.once('destroyed', () => onSignInPage.delete(contents.id))
     contents.setWindowOpenHandler(({ url }) => {
       if (contents.hostWebContents) routeLink(url, contents.hostWebContents)
       return { action: 'deny' }
