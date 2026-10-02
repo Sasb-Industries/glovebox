@@ -44,7 +44,8 @@ export function describeUrl(url: string): { fileId: string | null; mimeType: str
 export const cleanTitle = (title: string) =>
   title.replace(/ - Google (Docs|Sheets|Slides|Forms|Drawings|Drive)$/, '')
 
-export function formatModified(iso: string): string {
+export function formatModified(iso?: string): string {
+  if (!iso) return '—'
   const d = new Date(iso)
   const today = new Date()
   if (d.toDateString() === today.toDateString())
@@ -70,3 +71,12 @@ export const ownerName = (f: DriveFile) => {
   const owner = f.owners?.[0]
   return !owner ? '—' : owner.me ? 'me' : owner.displayName
 }
+
+/** Google file types offered by the New menu. Each is created empty via the Drive API. */
+export const NEW_GOOGLE_FILES = [
+  { label: 'Google Docs', mimeType: 'application/vnd.google-apps.document', name: 'Untitled document' },
+  { label: 'Google Sheets', mimeType: 'application/vnd.google-apps.spreadsheet', name: 'Untitled spreadsheet' },
+  { label: 'Google Slides', mimeType: 'application/vnd.google-apps.presentation', name: 'Untitled presentation' },
+  { label: 'Google Forms', mimeType: 'application/vnd.google-apps.form', name: 'Untitled form' },
+  { label: 'Google Drawings', mimeType: 'application/vnd.google-apps.drawing', name: 'Untitled drawing' }
+]

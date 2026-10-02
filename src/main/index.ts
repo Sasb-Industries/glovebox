@@ -1,8 +1,8 @@
-import { app, BrowserWindow, ipcMain, nativeTheme, session, shell, type WebContents } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, session, shell, type WebContents } from 'electron'
 import { join } from 'node:path'
 import * as auth from './auth'
 import * as drive from './drive'
-import type { AppStatus } from '../shared/types'
+import { DRIVE_METHODS, type AppStatus, type MenuItem } from '../shared/types'
 
 // Present as plain Chrome so Google's editors treat us as a supported browser.
 const isMac = process.platform === 'darwin'
@@ -105,8 +105,57 @@ ipcMain.handle('auth:sign-out', async () => {
   auth.signOut()
   if (profile) await session.fromPartition(partitionFor(profile.id)).clearStorageData()
 })
-ipcMain.handle('drive:list', (_e, folderId: string) => drive.listFolder(folderId))
-ipcMain.handle('drive:file', (_e, fileId: string) => drive.getFile(fileId))
+ipcMain.handle('drive', (_e, method: string, ...args: unknown[]) => {
+  if (!(DRIVE_METHODS as readonly string[]).includes(method)) throw new Error(`Unknown Drive method: ${method}`)
+  return (drive as unknown as Record<string, (...a: unknown[]) => unknown>)[method](...args)
+})
+ipcMain.handle('drive:upload', (e, paths: string[], parentId: string) =>
+  drive.uploadPaths(paths, parentId, (progress) => e.sender.send('upload-progress', progress))
+)
+
+/** Native context menu; resolves with the chosen item's id, or null if dismissed. */
+ipcMain.handle('menu:popup', (e, items: MenuItem[], position?: { x: number; y: number }) => {
+  const window = BrowserWindow.fromWebContents(e.sender)!
+  return new Promise<string | null>((resolve) => {
+    let chosen: string | null = null
+    const menu = Menu.buildFromTemplate(
+      items.map((item) =>
+        item.type === 'separator'
+          ? { type: 'separator' }
+          : {
+              label: item.label,
+              enabled: item.enabled ?? true,
+              accelerator: item.accelerator,
+              registerAccelerator: false,
+              click: () => (chosen = item.id ?? null)
+            }
+      )
+    )
+    // Menu click handlers run before the close callback.
+    menu.popup({ window, ...position, callback: () => resolve(chosen) })
+  })
+})
+
+ipcMain.handle('dialog:pick', async (e, kind: 'files' | 'folder') => {
+  const window = BrowserWindow.fromWebContents(e.sender)!
+  const result = await dialog.showOpenDialog(window, {
+    properties: kind === 'files' ? ['openFile', 'multiSelections'] : ['openDirectory', 'multiSelections']
+  })
+  return result.canceled ? [] : result.filePaths
+})
+
+ipcMain.handle('dialog:confirm', async (e, message: string, detail: string, confirmLabel: string) => {
+  const window = BrowserWindow.fromWebContents(e.sender)!
+  const { response } = await dialog.showMessageBox(window, {
+    type: 'warning',
+    message,
+    detail,
+    buttons: [confirmLabel, 'Cancel'],
+    defaultId: 1,
+    cancelId: 1
+  })
+  return response === 0
+})
 
 app.whenReady().then(() => {
   createWindow()
