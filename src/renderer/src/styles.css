@@ -30,20 +30,20 @@
   }
 }
 
-/* Dim: between light and dark, a soft slate. */
+/* Dim: a softer, grayer light theme — easier on the eyes than Light, nowhere near Dark. */
 :root[data-theme='dim'] {
-  --bg: #2a2d33;
-  --rail-bg: #23262b;
-  --pane-bg: #272a30;
-  --text: #dfe2e7;
-  --muted: #9aa1ab;
-  --border: #3a3e46;
-  --hover: rgba(255, 255, 255, 0.06);
-  --selected: #34445e;
-  --accent: #7aa2f7;
-  --danger: #ff7b8a;
-  --flash: rgba(122, 162, 247, 0.4);
-  color-scheme: dark;
+  --bg: #e4e6ea;
+  --rail-bg: #d7dae0;
+  --pane-bg: #dcdfe4;
+  --text: #1f2228;
+  --muted: #5d636e;
+  --border: #c7cbd3;
+  --hover: rgba(0, 0, 0, 0.05);
+  --selected: #c5d4ec;
+  --accent: #3a6bc9;
+  --danger: #b4233c;
+  --flash: rgba(58, 107, 201, 0.3);
+  color-scheme: light;
 }
 
 /* Pastel: Easter colours — cream, lavender, mint and pink. */
@@ -60,6 +60,68 @@
   --danger: #d64560;
   --flash: rgba(214, 95, 151, 0.35);
   color-scheme: light;
+}
+
+/* Catppuccin (https://catppuccin.com), official palette. Accent: mauve. */
+:root[data-theme='latte'] {
+  --bg: #eff1f5;
+  --rail-bg: #e6e9ef;
+  --pane-bg: #e6e9ef;
+  --text: #4c4f69;
+  --muted: #6c6f85;
+  --border: #ccd0da;
+  --hover: color-mix(in srgb, #ccd0da 60%, transparent);
+  --selected: #ccd0da;
+  --accent: #8839ef;
+  --on-accent: #eff1f5;
+  --danger: #d20f39;
+  --flash: color-mix(in srgb, #8839ef 40%, transparent);
+  color-scheme: light;
+}
+:root[data-theme='frappe'] {
+  --bg: #303446;
+  --rail-bg: #292c3c;
+  --pane-bg: #292c3c;
+  --text: #c6d0f5;
+  --muted: #a5adce;
+  --border: #414559;
+  --hover: color-mix(in srgb, #414559 60%, transparent);
+  --selected: #51576d;
+  --accent: #ca9ee6;
+  --on-accent: #303446;
+  --danger: #e78284;
+  --flash: color-mix(in srgb, #ca9ee6 40%, transparent);
+  color-scheme: dark;
+}
+:root[data-theme='macchiato'] {
+  --bg: #24273a;
+  --rail-bg: #1e2030;
+  --pane-bg: #1e2030;
+  --text: #cad3f5;
+  --muted: #a5adcb;
+  --border: #363a4f;
+  --hover: color-mix(in srgb, #363a4f 60%, transparent);
+  --selected: #494d64;
+  --accent: #c6a0f6;
+  --on-accent: #24273a;
+  --danger: #ed8796;
+  --flash: color-mix(in srgb, #c6a0f6 40%, transparent);
+  color-scheme: dark;
+}
+:root[data-theme='mocha'] {
+  --bg: #1e1e2e;
+  --rail-bg: #181825;
+  --pane-bg: #181825;
+  --text: #cdd6f4;
+  --muted: #a6adc8;
+  --border: #313244;
+  --hover: color-mix(in srgb, #313244 60%, transparent);
+  --selected: #45475a;
+  --accent: #cba6f7;
+  --on-accent: #1e1e2e;
+  --danger: #f38ba8;
+  --flash: color-mix(in srgb, #cba6f7 40%, transparent);
+  color-scheme: dark;
 }
 
 * {
@@ -96,7 +158,7 @@ button:disabled {
 }
 button.primary {
   background: var(--accent);
-  color: white;
+  color: var(--on-accent, white);
   padding: 8px 16px;
 }
 button.primary:hover:not(:disabled) {
@@ -224,7 +286,7 @@ code {
 .rail-glyph.avatar {
   border-radius: 50%;
   background: var(--accent);
-  color: white;
+  color: var(--on-accent, white);
   font-size: 10px;
   font-weight: 600;
 }
@@ -690,7 +752,7 @@ code {
   display: grid;
   place-items: center;
   background: var(--accent);
-  color: white;
+  color: var(--on-accent, white);
   font-size: 11px;
   font-weight: 600;
 }
@@ -700,8 +762,20 @@ code {
   margin-top: 8px;
   padding-left: 0;
 }
+.theme-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.theme-group-label {
+  width: 80px;
+  color: var(--muted);
+  font-size: 12px;
+}
 .segmented {
   display: inline-flex;
+  flex-wrap: wrap;
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 2px;

@@ -1,7 +1,7 @@
 import { app, BrowserWindow, nativeTheme } from 'electron'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { DEFAULT_PREFS, THEME_BACKGROUNDS, type Prefs } from '../shared/types'
+import { DARK_THEMES, DEFAULT_PREFS, THEME_BACKGROUNDS, type Prefs } from '../shared/types'
 import { defaultBindings, type Bindings } from '../shared/shortcuts'
 
 const prefsPath = () => join(app.getPath('userData'), 'prefs.json')
@@ -20,10 +20,10 @@ export function setPrefs(changes: Partial<Prefs>): Prefs {
   return prefs
 }
 
-/** Dim and Pastel are our own themes; native menus and scrollbars follow the nearest system theme. */
+/** Custom themes are CSS; native menus and scrollbars follow the nearest system theme. */
 export function applyTheme() {
   const { theme } = getPrefs()
-  nativeTheme.themeSource = theme === 'dim' ? 'dark' : theme === 'pastel' ? 'light' : theme
+  nativeTheme.themeSource = theme === 'system' ? 'system' : DARK_THEMES.includes(theme) ? 'dark' : 'light'
 }
 
 export function windowBackground() {

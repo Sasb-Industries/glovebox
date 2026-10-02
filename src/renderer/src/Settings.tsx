@@ -3,6 +3,28 @@ import type { Prefs, Profile, Theme } from '../../shared/types'
 import { bindingFrom, defaultBindings, formatBinding, keyPressFrom, SHORTCUTS, type ShortcutId } from '../../shared/shortcuts'
 import { isMac, setPrefs, useBindings, usePrefs } from './prefs'
 
+const THEME_GROUPS: { label: string; themes: [Theme, string][] }[] = [
+  {
+    label: 'Glovebox',
+    themes: [
+      ['system', 'Match system'],
+      ['light', 'Light'],
+      ['dim', 'Dim'],
+      ['dark', 'Dark'],
+      ['pastel', 'Pastel']
+    ]
+  },
+  {
+    label: 'Catppuccin',
+    themes: [
+      ['latte', 'Latte'],
+      ['frappe', 'Frappé'],
+      ['macchiato', 'Macchiato'],
+      ['mocha', 'Mocha']
+    ]
+  }
+]
+
 interface Props {
   profile: Profile
   onSignOut: (profile: Profile) => Promise<void>
@@ -56,13 +78,18 @@ export function Settings({ profile, onSignOut }: Props) {
 
       <section>
         <h2>Appearance</h2>
-        <div className="segmented">
-          {(['system', 'light', 'dim', 'dark', 'pastel'] as Theme[]).map((theme) => (
-            <button key={theme} className={prefs.theme === theme ? 'on' : ''} onClick={() => setPrefs({ theme })}>
-              {theme === 'system' ? 'Match system' : theme[0].toUpperCase() + theme.slice(1)}
-            </button>
-          ))}
-        </div>
+        {THEME_GROUPS.map((group) => (
+          <div key={group.label} className="theme-group">
+            <span className="theme-group-label">{group.label}</span>
+            <div className="segmented">
+              {group.themes.map(([theme, label]) => (
+                <button key={theme} className={prefs.theme === theme ? 'on' : ''} onClick={() => setPrefs({ theme })}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
       </section>
 
       <ShortcutEditor prefs={prefs} />

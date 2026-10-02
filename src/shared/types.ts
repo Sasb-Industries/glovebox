@@ -77,14 +77,21 @@ export const DRIVE_METHODS = [
   'copy'
 ] as const
 
-export type Theme = 'system' | 'light' | 'dim' | 'dark' | 'pastel'
+export type Theme = 'system' | 'light' | 'dim' | 'dark' | 'pastel' | 'latte' | 'frappe' | 'macchiato' | 'mocha'
+
+/** Themes drawn on a dark background (native menus and scrollbars follow suit). */
+export const DARK_THEMES: Theme[] = ['dark', 'frappe', 'macchiato', 'mocha']
 
 /** Window background per theme, so new windows don't flash the wrong colour. */
 export const THEME_BACKGROUNDS: Record<Exclude<Theme, 'system'>, string> = {
   light: '#ffffff',
-  dim: '#2a2d33',
+  dim: '#e4e6ea',
   dark: '#1c1c1e',
-  pastel: '#fffdf8'
+  pastel: '#fffdf7',
+  latte: '#eff1f5',
+  frappe: '#303446',
+  macchiato: '#24273a',
+  mocha: '#1e1e2e'
 }
 
 export interface Prefs {
