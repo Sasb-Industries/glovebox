@@ -1,8 +1,11 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, session, shell, type WebContents } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Menu, session, shell, type WebContents } from 'electron'
 import { join } from 'node:path'
 import * as auth from './auth'
 import * as drive from './drive'
-import { DRIVE_METHODS, type AppStatus, type MenuItem } from '../shared/types'
+import { applyTheme, getBindings, getPrefs, setPrefs } from './prefs'
+import * as windows from './windows'
+import { findShortcut } from '../shared/shortcuts'
+import { DRIVE_METHODS, type AppStatus, type MenuItem, type Prefs, type TabState } from '../shared/types'
 
 // Present as plain Chrome so Google's editors treat us as a supported browser.
 const isMac = process.platform === 'darwin'
@@ -30,26 +33,6 @@ app.on('session-created', (ses) => {
 const partitionFor = (profileId: string) => `persist:profile-${profileId}`
 const GOOGLE_EDITOR_HOSTS = new Set(['docs.google.com', 'drive.google.com'])
 
-function createWindow() {
-  const win = new BrowserWindow({
-    width: 1280,
-    height: 820,
-    minWidth: 720,
-    minHeight: 480,
-    show: false,
-    title: 'Glovebox',
-    backgroundColor: nativeTheme.shouldUseDarkColors ? '#1c1c1e' : '#ffffff',
-    webPreferences: {
-      preload: join(__dirname, '../preload/index.js'),
-      sandbox: true,
-      webviewTag: true
-    }
-  })
-  win.once('ready-to-show', () => win.show())
-  if (process.env.ELECTRON_RENDERER_URL) win.loadURL(process.env.ELECTRON_RENDERER_URL)
-  else win.loadFile(join(__dirname, '../renderer/index.html'))
-}
-
 /** Google file links become Glovebox tabs; everything else opens in the system browser. */
 function routeLink(rawUrl: string, host: WebContents) {
   let url = new URL(rawUrl)
@@ -70,6 +53,16 @@ app.on('web-contents-created', (_event, contents) => {
     if (!params.partition?.startsWith('persist:profile-')) event.preventDefault()
   })
   if (contents.getType() === 'webview') {
+    // App shortcuts (switch/close tabs) still work while typing in a document.
+    contents.on('before-input-event', (event, input) => {
+      if (input.type !== 'keyDown') return
+      const press = { key: input.key, ctrl: input.control, meta: input.meta, alt: input.alt, shift: input.shift }
+      const action = findShortcut(getBindings(), press, isMac, 'app')
+      if (action && contents.hostWebContents) {
+        event.preventDefault()
+        contents.hostWebContents.send('shortcut', action)
+      }
+    })
     // Keep the page's own navigator.userAgent consistent with the headers above.
     contents.on('did-start-navigation', (event) => {
       if (!event.isMainFrame || event.isSameDocument) return
@@ -99,11 +92,44 @@ ipcMain.handle('app:status', async (): Promise<AppStatus> => {
   if (!profile) return { kind: 'signed-out' }
   return { kind: 'signed-in', profile, webSignedIn: await webSignedIn(profile.id) }
 })
-ipcMain.handle('auth:sign-in', () => auth.signIn())
-ipcMain.handle('auth:sign-out', async () => {
-  const profile = auth.getProfile()
-  auth.signOut()
-  if (profile) await session.fromPartition(partitionFor(profile.id)).clearStorageData()
+// Signing in to a different account than the active one switches the whole app to it.
+ipcMain.handle('auth:sign-in', async () => {
+  const before = auth.getProfile()?.id
+  windows.saveSession()
+  const profile = await auth.signIn()
+  if (before && before !== profile.id) setImmediate(windows.reopenForActiveProfile)
+  return profile
+})
+ipcMain.handle('profiles:list', () => auth.listProfiles())
+ipcMain.handle('profiles:switch', (_e, id: string) => {
+  if (id === auth.getProfile()?.id) return
+  windows.saveSession()
+  auth.setActiveProfile(id)
+  windows.reopenForActiveProfile()
+})
+ipcMain.handle('profiles:remove', async (_e, id: string) => {
+  const wasActive = auth.getProfile()?.id === id
+  if (wasActive) windows.saveSession()
+  auth.removeProfile(id)
+  await session.fromPartition(partitionFor(id)).clearStorageData()
+  if (wasActive) windows.reopenForActiveProfile()
+})
+
+ipcMain.handle('prefs:get', () => getPrefs())
+ipcMain.handle('prefs:set', (_e, changes: Partial<Prefs>) => setPrefs(changes))
+
+ipcMain.handle('window:init', (e) => windows.takeInit(e.sender.id))
+ipcMain.on('window:update', (e, tabs: TabState[], activeIndex: number) => {
+  const win = BrowserWindow.fromWebContents(e.sender)
+  if (win) windows.updateWindow(win, tabs, activeIndex)
+})
+ipcMain.handle('window:open-tabs', (_e, tabs: TabState[], at?: { x: number; y: number }) =>
+  windows.openTabsInNewWindow(tabs, at)
+)
+/** Closes the sender's window unless it's the last one. */
+ipcMain.handle('window:close-if-others', (e) => {
+  const win = BrowserWindow.fromWebContents(e.sender)
+  if (win && BrowserWindow.getAllWindows().length > 1) win.close()
 })
 ipcMain.handle('drive', (_e, method: string, ...args: unknown[]) => {
   if (!(DRIVE_METHODS as readonly string[]).includes(method)) throw new Error(`Unknown Drive method: ${method}`)
@@ -158,8 +184,34 @@ ipcMain.handle('dialog:confirm', async (e, message: string, detail: string, conf
   return response === 0
 })
 
+/** A minimal menu: no Cmd+W "Close Window" (Glovebox uses it to close tabs), but keep Edit for text fields. */
+function buildMenu() {
+  const dev = !app.isPackaged
+  const template: Electron.MenuItemConstructorOptions[] = [
+    ...(isMac ? [{ role: 'appMenu' as const }] : []),
+    { role: 'editMenu' },
+    {
+      label: 'View',
+      submenu: [
+        ...(dev ? [{ role: 'reload' as const }, { role: 'toggleDevTools' as const }, { type: 'separator' as const }] : []),
+        { role: 'resetZoom' },
+        { role: 'zoomIn' },
+        { role: 'zoomOut' },
+        { type: 'separator' },
+        { role: 'togglefullscreen' }
+      ]
+    },
+    { label: 'Window', submenu: [{ role: 'minimize' }, { role: 'zoom' }] }
+  ]
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template))
+}
+
 app.whenReady().then(() => {
-  createWindow()
-  app.on('activate', () => BrowserWindow.getAllWindows().length === 0 && createWindow())
+  applyTheme()
+  buildMenu()
+  windows.openProfileWindows(windows.restoreAtLaunch())
+  app.on('activate', () => BrowserWindow.getAllWindows().length === 0 && windows.openProfileWindows(false))
 })
-app.on('window-all-closed', () => process.platform !== 'darwin' && app.quit())
+app.on('before-quit', windows.prepareToQuit)
+// Closing the last window quits, on macOS too: reopening is always a fresh start (unless restoring).
+app.on('window-all-closed', () => app.quit())

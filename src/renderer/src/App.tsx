@@ -28,11 +28,6 @@ export function App() {
     }
   }
 
-  async function signOut() {
-    await window.glovebox.signOut()
-    await refreshStatus()
-  }
-
   /** Returns true when the error was an expired sign-in (handled by showing the reconnect banner). */
   const onAuthError = useCallback((e: unknown) => {
     const expired = String((e as Error)?.message).includes(RECONNECT)
@@ -90,7 +85,6 @@ export function App() {
         partition={partitionFor(status.profile.id)}
         refreshKey={refreshKey}
         onAuthError={onAuthError}
-        onSignOut={signOut}
       />
     </div>
   )

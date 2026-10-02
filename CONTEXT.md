@@ -32,6 +32,8 @@ Guiding principle: **the codebase should be as simple as possible for the functi
 ### Accounts & auth
 - Each profile signs in twice, once, via an "Add profile" wizard: Drive API OAuth in the system browser (loopback + PKCE), and a Google web login in an in-app window for the editors' session. See [ADR 0002](docs/adr/0002-two-step-sign-in.md).
 - Multiple switchable profiles in v1. Each profile = an isolated Electron session partition + its own refresh token.
+  - Switch from the avatar menu at the bottom of the rail, or from Settings → Accounts. The menu checks the current profile and offers "Add another account…" and "Sign out".
+  - Switching closes every window and reopens the target profile's windows and tabs (always restored on a switch, whatever the restore preference). Signing in to a new account switches to it.
 - Our Google Cloud project stays in **Testing** mode (≤100 listed test users; refresh tokens expire every 7 days → one-click "Reconnect" banner). Anyone else brings their own Google Cloud credentials. See [ADR 0003](docs/adr/0003-testing-mode-byo-credentials.md).
 - Work/school accounts may be blocked by their admin's third-party-app policy. Personal accounts are fine.
 
@@ -56,14 +58,16 @@ Guiding principle: **the codebase should be as simple as possible for the functi
 - Opening a file that's already open focuses its existing tab and briefly flashes it. Ctrl/Cmd+click or middle-click forces a second tab.
 - Links inside a document: Google Docs/Drive links open as new doc tabs; all other links open in the system browser. Glovebox is not a general-purpose browser.
 - Non-Google files open as preview tabs. Office files (.docx/.xlsx/.pptx) open in Google's editors in Office-editing mode, matching Drive.
-- Tabs can be dragged out of the rail into a new window and dragged back to merge. Always on, no setting.
+- Doc tabs can be reordered by dragging within the rail. Dragging one out of the window opens it in a new window; dropping it on another window's rail moves it there. If that leaves a window with no doc tabs (and other windows remain), the window closes. Moving a tab reloads its document (Google keeps the state). Always on, no setting.
+- Closing the last window quits Glovebox, on macOS too, so reopening is a fresh start unless restore is on.
 - Restored tabs load lazily (only when clicked) — each live Google editor costs 150–300 MB.
 
 ### Preferences
+Settings opens from ⚙ in the rail footer as its own view (Accounts, General, Appearance, Keyboard shortcuts). Preferences are global (not per profile) and apply live in every window.
 - **Restore tabs on launch** — default **off** (fresh start). A restart triggered by an app update always restores.
 - **Open files in their own window** — default **off**.
 - **Theme** — Light / Dark / System (default System). Custom minimal neutral style, clean like Google's but our own.
-- **Keyboard shortcuts** — defaults mimic Chrome + Google Drive. Editable table: click an action, press the new key; "Reset to defaults". Shortcuts that Google's editors use go to the editor when it's focused.
+- **Keyboard shortcuts** — defaults mimic Chrome + Google Drive (`src/shared/shortcuts.ts`). Editable table: click Change, press the new keys; a key already in use moves to the new action; "Reset to defaults". *App* shortcuts (next/previous/close tab, go to Files) work even while a document has focus. Everything else applies only in the file list, so Google's editors keep their own shortcuts. There is no Cmd+W "Close Window" menu item; Cmd/Ctrl+W closes tabs.
 - **Software updates** — current version + "Check for updates".
 
 ### Distribution & updates

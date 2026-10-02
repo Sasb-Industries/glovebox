@@ -589,3 +589,108 @@ code {
   font-size: 18px;
   color: var(--muted);
 }
+
+/* Rail: tab drag targets */
+.rail-item.drop-before {
+  box-shadow: inset 0 2px 0 var(--accent);
+}
+.drop-end {
+  height: 2px;
+  margin: 0 6px;
+  background: var(--accent);
+}
+
+/* Settings */
+.settings {
+  flex: 1;
+  overflow-y: auto;
+  padding: 32px 48px 64px;
+  user-select: text;
+}
+.settings h1 {
+  font-size: 22px;
+  margin: 0 0 24px;
+}
+.settings section {
+  max-width: 640px;
+  margin-bottom: 32px;
+}
+.settings h2 {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin: 0 0 8px;
+}
+.settings-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+}
+.settings-row button,
+.settings section > button {
+  border: 1px solid var(--border);
+}
+.settings .grow {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.settings .hint {
+  color: var(--muted);
+  font-size: 12px;
+}
+.settings .toggle {
+  cursor: pointer;
+  align-items: flex-start;
+  padding: 8px 0;
+}
+.settings .toggle input {
+  margin-top: 3px;
+}
+.avatar-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--accent);
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+}
+.settings button.link {
+  border: 0;
+  color: var(--accent);
+  margin-top: 8px;
+  padding-left: 0;
+}
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 2px;
+}
+.segmented button.on {
+  background: var(--selected);
+}
+.shortcut-table {
+  margin-bottom: 12px;
+}
+kbd {
+  font: 12px ui-monospace, SFMono-Regular, Menlo, monospace;
+  padding: 2px 6px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--pane-bg);
+  min-width: 48px;
+  text-align: center;
+}
+.settings-row button.capture {
+  border-color: var(--accent);
+  color: var(--accent);
+  outline: none;
+}

@@ -102,6 +102,12 @@ export async function getFile(fileId: string): Promise<DriveFile> {
 }
 
 let myDriveId: string | undefined
+
+/** Forgets per-account caches; call when the active profile changes. */
+export function resetCaches() {
+  myDriveId = undefined
+  parentCache.clear()
+}
 const myDriveRootId = async () => (myDriveId ??= (await api('files/root', { params: { fields: 'id' } })).id as string)
 
 /** The folder's real location, e.g. My Drive › School › Econ, by walking up its parents. */

@@ -3,10 +3,11 @@ import { FOLDER_MIME, type DriveFile, type MenuItem, type UploadProgress } from 
 import { DRAG_TYPE, FileList, type DropProps, type Sort } from './FileList'
 import { isFolder, isShortcut, NEW_GOOGLE_FILES, ownerName } from './files'
 import { Icon } from './icons'
+import { isMac, useBindings } from './prefs'
+import { findShortcut, keyPressFrom, type ShortcutId } from '../../shared/shortcuts'
 import { folderOf, SECTION_LABELS, sectionOf, sectionRoot, type Location, type Section } from './location'
 
 const drive = window.glovebox.drive
-const isMac = navigator.userAgent.includes('Mac')
 const TRASH_ACCELERATOR = isMac ? 'Cmd+Backspace' : 'Delete'
 const SEPARATOR: MenuItem = { type: 'separator' }
 
@@ -64,6 +65,8 @@ export function Explorer(props: Props) {
   const [searchText, setSearchText] = useState('')
   const [dropTarget, setDropTarget] = useState<string | null>(null)
   const listRef = useRef<HTMLDivElement>(null)
+  const searchRef = useRef<HTMLInputElement>(null)
+  const bindings = useBindings()
   const loadedLocation = useRef<Location | null>(null)
 
   const folder = folderOf(location)
@@ -380,18 +383,29 @@ export function Explorer(props: Props) {
   // ---- Keyboard ----
 
   function onKeyDown(e: React.KeyboardEvent) {
-    const mod = e.metaKey || e.ctrlKey
-    const key = e.key.toLowerCase()
-    if (e.key === 'Enter' && selected.length) doAction('open', selected)
-    else if (e.key === 'F2' && selected.length === 1) setRenamingId(selected[0].id)
-    else if ((e.key === 'Delete' || (mod && e.key === 'Backspace')) && selected.length) trashSelected(selected)
-    else if (e.key === 'Backspace' || (e.altKey && e.key === 'ArrowUp')) goUp()
-    else if (e.altKey && e.key === 'ArrowLeft') goBack()
-    else if (e.altKey && e.key === 'ArrowRight') goForward()
-    else if (mod && key === 'x' && selected.length) setClipboard({ mode: 'cut', files: selected })
-    else if (mod && key === 'c' && selected.length) copyToClipboard(selected)
-    else if (mod && key === 'v' && folder) paste(folder.id)
-    else if (mod && key === 'a') setSelection(new Set(sorted.map((f) => f.id)))
+    const action = findShortcut(bindings, keyPressFrom(e), isMac, 'explorer')
+    const newType = (mime: string) => () => newGoogleFile(mime)
+    const handlers: Partial<Record<ShortcutId, () => unknown>> = {
+      open: () => selected.length && doAction('open', selected),
+      rename: () => selected.length === 1 && setRenamingId(selected[0].id),
+      trash: () => selected.length && trashSelected(selected),
+      cut: () => selected.length && setClipboard({ mode: 'cut', files: selected }),
+      copy: () => selected.length && copyToClipboard(selected),
+      paste: () => folder && paste(folder.id),
+      'select-all': () => setSelection(new Set(sorted.map((f) => f.id))),
+      up: goUp,
+      back: goBack,
+      forward: goForward,
+      refresh: reload,
+      search: () => searchRef.current?.focus(),
+      'new-folder': newFolder,
+      'new-doc': newType('application/vnd.google-apps.document'),
+      'new-sheet': newType('application/vnd.google-apps.spreadsheet'),
+      'new-slides': newType('application/vnd.google-apps.presentation'),
+      'new-form': newType('application/vnd.google-apps.form')
+    }
+    const handler = action && handlers[action]
+    if (handler) handler()
     else if (e.key === 'Escape') setSelection(new Set())
     else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       const i = sorted.findIndex((f) => f.id === anchor)
@@ -493,6 +507,7 @@ export function Explorer(props: Props) {
           <label className="search">
             <Icon name="search" />
             <input
+              ref={searchRef}
               placeholder={folder ? `Search ${folder.name}` : 'Search Drive'}
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}

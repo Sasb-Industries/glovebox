@@ -76,3 +76,36 @@ export const DRIVE_METHODS = [
   'move',
   'copy'
 ] as const
+
+export type Theme = 'system' | 'light' | 'dark'
+
+export interface Prefs {
+  /** Reopen the previous windows and tabs at launch. Off by default: a fresh start. */
+  restoreTabs: boolean
+  /** Open each file in its own window instead of a tab. */
+  openInOwnWindow: boolean
+  theme: Theme
+  /** Only the user's changes; everything else uses the platform defaults. */
+  shortcuts: Partial<Record<string, string>>
+}
+
+export const DEFAULT_PREFS: Prefs = { restoreTabs: false, openInOwnWindow: false, theme: 'system', shortcuts: {} }
+
+/** A document tab as saved in sessions and moved between windows. */
+export interface TabState {
+  fileId: string | null
+  title: string
+  mimeType: string
+  url: string
+}
+
+export interface WindowInit {
+  tabs: TabState[]
+  /** Index of the tab to show, or -1 for Files. */
+  activeIndex: number
+}
+
+export interface ProfileList {
+  profiles: Profile[]
+  activeId: string | null
+}

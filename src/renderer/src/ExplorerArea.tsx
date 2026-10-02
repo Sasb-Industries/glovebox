@@ -3,6 +3,8 @@ import type { DriveFile } from '../../shared/types'
 import { Explorer, type Clipboard, type ExplorerHandle } from './Explorer'
 import { DRAG_TYPE } from './FileList'
 import { iconUrl } from './files'
+import { isMac, useBindings } from './prefs'
+import { findShortcut, keyPressFrom } from '../../shared/shortcuts'
 import { MY_DRIVE, SECTION_LABELS, sectionOf, type Location, type Section } from './location'
 
 /** One folder tab in the dock; each is its own explorer with its own history. */
@@ -18,6 +20,8 @@ const HOVER_OPEN_MS = 500
 
 export interface ExplorerAreaHandle {
   goToSection: (section: Section) => void
+  /** Closes the focused folder tab, if there's more than one. */
+  closeFolderTab: () => void
 }
 
 interface Props {
@@ -52,13 +56,17 @@ export function ExplorerArea({ ref, onSectionChange, refreshKey, ...explorerProp
   const [splitPreview, setSplitPreview] = useState<Side | null>(null)
   const explorers = useRef(new Map<string, ExplorerHandle>())
   const hoverTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const bindings = useBindings()
 
   const focusedTab = (focused === 'right' && panes.right) || panes.left
   const split = panes.right !== null
 
   const section = sectionOf(locations[focusedTab] ?? MY_DRIVE)
   useEffect(() => onSectionChange(section), [section, onSectionChange])
-  useImperativeHandle(ref, () => ({ goToSection: (s) => explorers.current.get(focusedTab)?.goToSection(s) }))
+  useImperativeHandle(ref, () => ({
+    goToSection: (s) => explorers.current.get(focusedTab)?.goToSection(s),
+    closeFolderTab: () => tabs.length > 1 && closeTab(focusedTab)
+  }))
 
   const onChanged = useCallback(() => setChanges((c) => c + 1), [])
   const locationSetters = useRef(new Map<string, (loc: Location) => void>())
@@ -191,7 +199,7 @@ export function ExplorerArea({ ref, onSectionChange, refreshKey, ...explorerProp
   }
 
   function onKeyDown(e: React.KeyboardEvent) {
-    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 't') {
+    if (findShortcut(bindings, keyPressFrom(e), isMac, 'explorer') === 'new-folder-tab') {
       e.preventDefault()
       addTab()
     }
@@ -268,7 +276,7 @@ export function ExplorerArea({ ref, onSectionChange, refreshKey, ...explorerProp
               </div>
             )
           })}
-        <button className="dock-add" onClick={addTab} title="New folder tab (Ctrl/Cmd+T)">
+        <button className="dock-add" onClick={addTab} title="New folder tab">
           +
         </button>
       </div>

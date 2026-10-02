@@ -5,7 +5,7 @@ import { createServer } from 'node:http'
 import { createHash, randomBytes, randomUUID } from 'node:crypto'
 import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { RECONNECT, type Profile } from '../shared/types'
+import { RECONNECT, type Profile, type ProfileList } from '../shared/types'
 
 const CLIENT_ID = import.meta.env.GLOVEBOX_GOOGLE_CLIENT_ID
 const CLIENT_SECRET = import.meta.env.GLOVEBOX_GOOGLE_CLIENT_SECRET
@@ -17,28 +17,60 @@ interface StoredProfile extends Profile {
   encrypted: boolean
 }
 
-const profilePath = () => join(app.getPath('userData'), 'profile.json')
-let accessToken: { value: string; expiresAt: number } | null = null
+interface Store {
+  activeId: string | null
+  profiles: StoredProfile[]
+}
+
+const storePath = () => join(app.getPath('userData'), 'profiles.json')
+const legacyPath = () => join(app.getPath('userData'), 'profile.json')
+const accessTokens = new Map<string, { value: string; expiresAt: number }>()
 
 export const hasCredentials = () => Boolean(CLIENT_ID && CLIENT_SECRET)
 
-function readStored(): StoredProfile | null {
-  if (!existsSync(profilePath())) return null
-  return JSON.parse(readFileSync(profilePath(), 'utf8'))
+function readStore(): Store {
+  if (existsSync(storePath())) return JSON.parse(readFileSync(storePath(), 'utf8'))
+  // Before multiple profiles, the single profile lived in profile.json.
+  if (existsSync(legacyPath())) {
+    const legacy: StoredProfile = JSON.parse(readFileSync(legacyPath(), 'utf8'))
+    const store = { activeId: legacy.id, profiles: [legacy] }
+    writeStore(store)
+    rmSync(legacyPath())
+    return store
+  }
+  return { activeId: null, profiles: [] }
+}
+
+const writeStore = (store: Store) => writeFileSync(storePath(), JSON.stringify(store, null, 2))
+const publicProfile = ({ id, email, name }: StoredProfile): Profile => ({ id, email, name })
+
+export function listProfiles(): ProfileList {
+  const { activeId, profiles } = readStore()
+  return { activeId, profiles: profiles.map(publicProfile) }
 }
 
 export function getProfile(): Profile | null {
-  const stored = readStored()
-  return stored && { id: stored.id, email: stored.email, name: stored.name }
+  const { activeId, profiles } = readStore()
+  const active = profiles.find((p) => p.id === activeId)
+  return active ? publicProfile(active) : null
 }
 
-export function signOut() {
-  rmSync(profilePath(), { force: true })
-  accessToken = null
+export function setActiveProfile(id: string) {
+  const store = readStore()
+  if (store.profiles.some((p) => p.id === id)) writeStore({ ...store, activeId: id })
+}
+
+/** Forgets a profile. If it was active, the next remaining profile (if any) becomes active. */
+export function removeProfile(id: string) {
+  const store = readStore()
+  const profiles = store.profiles.filter((p) => p.id !== id)
+  writeStore({ profiles, activeId: store.activeId === id ? (profiles[0]?.id ?? null) : store.activeId })
+  accessTokens.delete(id)
 }
 
 const base64url = (buf: Buffer) => buf.toString('base64url')
 
+/** Signs in with Google and makes that account the active profile (adding it if it's new). */
 export async function signIn(): Promise<Profile> {
   const verifier = base64url(randomBytes(32))
   const challenge = base64url(createHash('sha256').update(verifier).digest())
@@ -52,38 +84,43 @@ export async function signIn(): Promise<Profile> {
     code_verifier: verifier
   })
   if (!tokens.refresh_token) throw new Error('Google did not return a refresh token.')
-  accessToken = { value: tokens.access_token, expiresAt: Date.now() + tokens.expires_in * 1000 }
 
   const res = await fetch('https://www.googleapis.com/drive/v3/about?fields=user(displayName,emailAddress)', {
     headers: { Authorization: `Bearer ${tokens.access_token}` }
   })
   const { user } = await res.json()
 
-  // Reconnecting the same account keeps its id, and therefore its web session partition.
-  const previous = readStored()
-  const id = previous && previous.email === user.emailAddress ? previous.id : randomUUID()
+  // Reconnecting an existing account keeps its id, and therefore its web session partition.
+  const store = readStore()
+  const existing = store.profiles.find((p) => p.email === user.emailAddress)
+  const id = existing?.id ?? randomUUID()
   const encrypted = safeStorage.isEncryptionAvailable()
   const refreshToken = encrypted
     ? safeStorage.encryptString(tokens.refresh_token).toString('base64')
     : Buffer.from(tokens.refresh_token).toString('base64')
   const profile: StoredProfile = { id, email: user.emailAddress, name: user.displayName, refreshToken, encrypted }
-  writeFileSync(profilePath(), JSON.stringify(profile, null, 2))
-  return { id, email: profile.email, name: profile.name }
+  writeStore({ activeId: id, profiles: [...store.profiles.filter((p) => p.id !== id), profile] })
+  accessTokens.set(id, { value: tokens.access_token, expiresAt: Date.now() + tokens.expires_in * 1000 })
+  return publicProfile(profile)
 }
 
+/** An access token for the active profile. */
 export async function getAccessToken(): Promise<string> {
-  if (accessToken && accessToken.expiresAt - 60_000 > Date.now()) return accessToken.value
-  const stored = readStored()
+  const { activeId, profiles } = readStore()
+  const stored = profiles.find((p) => p.id === activeId)
   if (!stored) throw new Error(RECONNECT)
+  const cached = accessTokens.get(stored.id)
+  if (cached && cached.expiresAt - 60_000 > Date.now()) return cached.value
   const raw = Buffer.from(stored.refreshToken, 'base64')
   const refreshToken = stored.encrypted ? safeStorage.decryptString(raw) : raw.toString()
   const tokens = await postToken({ grant_type: 'refresh_token', refresh_token: refreshToken })
-  accessToken = { value: tokens.access_token, expiresAt: Date.now() + tokens.expires_in * 1000 }
-  return accessToken.value
+  accessTokens.set(stored.id, { value: tokens.access_token, expiresAt: Date.now() + tokens.expires_in * 1000 })
+  return tokens.access_token
 }
 
 export function clearAccessToken() {
-  accessToken = null
+  const id = readStore().activeId
+  if (id) accessTokens.delete(id)
 }
 
 async function postToken(params: Record<string, string>) {
@@ -137,7 +174,7 @@ function waitForCode(state: string, challenge: string): Promise<{ code: string; 
         code_challenge_method: 'S256',
         state,
         access_type: 'offline',
-        prompt: 'consent'
+        prompt: 'consent select_account'
       }).toString()
       shell.openExternal(authUrl.toString())
     })
