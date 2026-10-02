@@ -84,6 +84,11 @@ export function Workspace({ profile, partition, refreshKey, onAuthError, onSignO
     if (choice) explorer.current?.goToSection(choice as Section)
   }
 
+  const closeTabsFor = useCallback((fileIds: string[]) => {
+    const gone = new Set(fileIds)
+    setTabs((ts) => ts.filter((t) => !t.fileId || !gone.has(t.fileId)))
+  }, [])
+
   const setTitle = useCallback(
     (key: string, title: string) => setTabs((ts) => ts.map((t) => (t.key === key ? { ...t, title } : t))),
     []
@@ -140,7 +145,7 @@ export function Workspace({ profile, partition, refreshKey, onAuthError, onSignO
 
       <main className="content">
         <div className="view" hidden={active !== FILES}>
-          <Explorer ref={explorer} onSectionChange={setSection} refreshKey={refreshKey} onOpen={openFile} onAuthError={onAuthError} />
+          <Explorer ref={explorer} onSectionChange={setSection} refreshKey={refreshKey} onOpen={openFile} onRemoved={closeTabsFor} onAuthError={onAuthError} />
         </div>
         {tabs.map((tab) => (
           <DocView

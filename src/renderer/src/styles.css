@@ -150,14 +150,8 @@ code {
   width: 46px;
 }
 .rail-collapsed .rail-label,
-.rail-collapsed .rail-chevron {
-  color: var(--muted);
-  font-size: 10px;
-}
-.rail-collapsed .rail-chevron {
-  display: none;
-}
-.rail-close {
+.rail-collapsed .rail-chevron,
+.rail-collapsed .rail-close {
   display: none;
 }
 .rail-tabs {
@@ -173,7 +167,7 @@ code {
   gap: 8px;
   width: 100%;
   height: 28px;
-  padding: 0 7px;
+  padding: 0 4px 0 7px;
   border-radius: 6px;
   cursor: pointer;
   text-align: left;
@@ -213,23 +207,26 @@ code {
   color: var(--muted);
   font-size: 10px;
 }
-.rail-collapsed .rail-chevron {
-  display: none;
-}
+/* Close button: only on the hovered tab, only when the rail is expanded. */
 .rail-close {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  flex-shrink: 0;
+  border-radius: 4px;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--muted);
   visibility: hidden;
-  padding: 0 4px;
-  color: var(--muted);
 }
-.rail-item:hover .rail-chevron {
-  color: var(--muted);
-  font-size: 10px;
-}
-.rail-collapsed .rail-chevron {
-  display: none;
-}
-.rail-close {
+.rail-item:hover .rail-close {
   visibility: visible;
+}
+.rail-close:hover {
+  color: var(--text);
+  background: var(--hover);
 }
 .rail-divider {
   height: 1px;

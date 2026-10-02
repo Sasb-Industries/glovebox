@@ -30,10 +30,12 @@ interface Props {
   onSectionChange: (section: Section) => void
   refreshKey: number
   onOpen: (file: DriveFile, forceNew: boolean) => void
+  /** Files that were trashed or deleted, so their tabs can close. */
+  onRemoved: (fileIds: string[]) => void
   onAuthError: (e: unknown) => boolean
 }
 
-export function Explorer({ ref, onSectionChange, refreshKey, onOpen, onAuthError }: Props) {
+export function Explorer({ ref, onSectionChange, refreshKey, onOpen, onRemoved, onAuthError }: Props) {
   const [location, setLocation] = useState<Location>(MY_DRIVE)
   const [back, setBack] = useState<Location[]>([])
   const [forward, setForward] = useState<Location[]>([])
@@ -232,13 +234,15 @@ export function Explorer({ ref, onSectionChange, refreshKey, onOpen, onAuthError
       "This can't be undone.",
       'Delete forever'
     )
-    if (ok) change(() => each(list, (f) => drive.deleteForever(f.id)), `Deleted ${plural(list.length)} forever`)
+    if (ok && (await change(() => each(list, (f) => drive.deleteForever(f.id)), `Deleted ${plural(list.length)} forever`)))
+      onRemoved(list.map((f) => f.id))
   }
 
-  const trashSelected = (list: DriveFile[]) =>
-    location.kind === 'view' && location.view === 'trash'
-      ? deleteForever(list)
-      : change(() => each(list, (f) => drive.trash(f.id)), `Moved ${plural(list.length)} to Trash`)
+  async function trashSelected(list: DriveFile[]) {
+    if (location.kind === 'view' && location.view === 'trash') return deleteForever(list)
+    if (await change(() => each(list, (f) => drive.trash(f.id)), `Moved ${plural(list.length)} to Trash`))
+      onRemoved(list.map((f) => f.id))
+  }
 
   async function doAction(action: string, list: DriveFile[]) {
     const allStarred = list.every((f) => f.starred)
