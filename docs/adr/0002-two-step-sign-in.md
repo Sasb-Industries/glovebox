@@ -19,4 +19,9 @@ When the refresh token expires (weekly in Testing mode, see [0003](0003-testing-
 
 ## Consequences
 - Slightly longer first-run.
-- The in-app web login may need a standard Chrome user-agent (stripping "Electron") to avoid Google's "browser may not be secure" block.
+- Google blocks embedded Chromium on its sign-in pages ("This browser or app may not be secure"), even with a plain Chrome user-agent. Workaround (verified 2026-10-01):
+  - While a webview is on `accounts.google.com`, it presents as **Firefox**.
+  - It uses a Firefox user-agent, with no `Sec-CH-UA` client hints.
+  - `preload/webview.ts` hides `navigator.userAgentData`, `navigator.vendor` and `window.chrome`.
+  - Everywhere else, including the editors, presents as Chrome.
+  - If Google tightens detection, this is the place to look.
