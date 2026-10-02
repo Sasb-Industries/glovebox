@@ -1,4 +1,6 @@
 # Push a tag like v0.2.0 (npm version minor && git push --follow-tags) to build and publish a release.
+# One job creates the release first; the platform builds then upload into it (if both builds created
+# it themselves they'd race and make two releases).
 name: Release
 
 on:
@@ -9,7 +11,15 @@ permissions:
   contents: write
 
 jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - run: gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --title "${GITHUB_REF_NAME#v}" --generate-notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   build:
+    needs: release
     strategy:
       matrix:
         include:
@@ -36,7 +46,12 @@ jobs:
         env:
           GLOVEBOX_GOOGLE_CLIENT_ID: ${{ secrets.GLOVEBOX_GOOGLE_CLIENT_ID }}
           GLOVEBOX_GOOGLE_CLIENT_SECRET: ${{ secrets.GLOVEBOX_GOOGLE_CLIENT_SECRET }}
-      - name: Package and publish
-        run: npx electron-builder ${{ matrix.args }} --publish always
+      - name: Package
+        run: npx electron-builder ${{ matrix.args }} --publish never
+      - name: Upload to the release
+        shell: bash
+        run: |
+          shopt -s nullglob
+          gh release upload "$GITHUB_REF_NAME" release/*.dmg release/*.exe release/*.blockmap release/latest*.yml --clobber
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
